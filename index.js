@@ -19,7 +19,7 @@ const client = new Client({
   partials: [Partials.Channel],
 });
 
-const TOKEN = "1492903374872383578";
+const TOKEN = process.env.TOKEN;
 
 // لما البوت يشتغل
 client.once("ready", async () => {
