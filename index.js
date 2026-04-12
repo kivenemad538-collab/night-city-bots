@@ -22,8 +22,8 @@ const client = new Client({
 const TOKEN = process.env.TOKEN;
 
 // IDs 👇 عدلهم
-const DECISION_CHANNEL_ID = "PUT_DECISION_CHANNEL_ID";
-const WELCOME_CHANNEL_ID = "PUT_WELCOME_CHANNEL_ID";
+const DECISION_CHANNEL_ID = "1492903374872383578";
+const WELCOME_CHANNEL_ID = "1492901647452737576";
 
 client.once("ready", async () => {
   console.log(`🔥 Logged in as ${client.user.tag}`);
