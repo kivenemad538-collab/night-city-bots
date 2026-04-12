@@ -21,13 +21,14 @@ const client = new Client({
 
 const TOKEN = process.env.TOKEN;
 
-// لما البوت يشتغل
-client.once("ready", async () => {
-  console.log(`Logged in as ${client.user.tag}`);
+// IDs 👇 عدلهم
+const DECISION_CHANNEL_ID = "PUT_DECISION_CHANNEL_ID";
+const WELCOME_CHANNEL_ID = "PUT_WELCOME_CHANNEL_ID";
 
-  // غير ID التشانل هنا 👇
-  const channelId = "PUT_CHANNEL_ID_HERE";
-  const channel = await client.channels.fetch(channelId);
+client.once("ready", async () => {
+  console.log(`🔥 Logged in as ${client.user.tag}`);
+
+  const channel = await client.channels.fetch(DECISION_CHANNEL_ID);
 
   const button = new ButtonBuilder()
     .setCustomId("decision_button")
@@ -42,7 +43,7 @@ client.once("ready", async () => {
   });
 });
 
-// لما حد يدوس الزر
+// 🔥 زرار القرار
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isButton()) {
     if (interaction.customId === "decision_button") {
@@ -63,7 +64,6 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
 
-  // بعد ما يكتب القرار
   if (interaction.isModalSubmit()) {
     if (interaction.customId === "decision_modal") {
       const decision = interaction.fields.getTextInputValue("decision_text");
@@ -73,10 +73,7 @@ client.on("interactionCreate", async (interaction) => {
         ephemeral: true,
       });
 
-      const guild = interaction.guild;
-
-      // نجيب كل الأعضاء
-      const members = await guild.members.fetch();
+      const members = await interaction.guild.members.fetch();
 
       members.forEach(async (member) => {
         if (member.user.bot) return;
@@ -94,10 +91,42 @@ ${decision}
 
           await member.send({ embeds: [embed] });
         } catch (err) {
-          console.log(`Couldn't DM ${member.user.tag}`);
+          console.log(`❌ Couldn't DM ${member.user.tag}`);
         }
       });
     }
+  }
+});
+
+// 🔥 الترحيب
+client.on("guildMemberAdd", async (member) => {
+  try {
+    const channel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
+
+    // رسالة في السيرفر
+    if (channel) {
+      channel.send({
+        content: `🔥 Welcome ${member} to **SULTANS EL ZALL** 👑`,
+      });
+    }
+
+    // DM
+    await member.send({
+      embeds: [
+        {
+          color: 0xff0000,
+          title: "👑 Welcome to SULTANS EL ZALL",
+          description: `👋 Hello ${member.user.username}
+
+🔥 Welcome to the gang  
+📜 Check the rules and enjoy your stay  
+
+💀 SULTANS EL ZALL`,
+        },
+      ],
+    });
+  } catch (err) {
+    console.log("❌ Error welcoming user:", err);
   }
 });
 
