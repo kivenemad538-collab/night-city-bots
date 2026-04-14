@@ -15,6 +15,8 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
   ],
   partials: [Partials.Channel],
 });
@@ -22,9 +24,15 @@ const client = new Client({
 const TOKEN = process.env.TOKEN;
 
 // IDs 👇 عدلهم
-const DECISION_CHANNEL_ID = "1492903374872383578";
-const WELCOME_CHANNEL_ID = "1492901647452737576";
+const DECISION_CHANNEL_ID = "PUT_DECISION_CHANNEL_ID";
+const WELCOME_CHANNEL_ID = "PUT_WELCOME_CHANNEL_ID";
+const PREVIEW_CHANNEL_ID = "PUT_PREVIEW_CHANNEL_ID";
+const CREATOR_ROLE_ID = "PUT_CREATOR_ROLE_ID";
 
+// 🧠 تسجيل المستخدمين
+const registered = new Set();
+
+// ================= READY =================
 client.once("ready", async () => {
   console.log(`🔥 Logged in as ${client.user.tag}`);
 
@@ -43,7 +51,7 @@ client.once("ready", async () => {
   });
 });
 
-// 🔥 زرار القرار
+// ================= القرارات =================
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isButton()) {
     if (interaction.customId === "decision_button") {
@@ -69,7 +77,7 @@ client.on("interactionCreate", async (interaction) => {
       const decision = interaction.fields.getTextInputValue("decision_text");
 
       await interaction.reply({
-        content: "✅ تم إرسال القرار لكل الأعضاء",
+        content: "✅ تم إرسال القرار",
         ephemeral: true,
       });
 
@@ -84,33 +92,79 @@ client.on("interactionCreate", async (interaction) => {
             .setTitle("📢 Message from SULTANS EL ZALL")
             .setDescription(`👋 Hello ${member}
 
-📌 **Decision:**
-${decision}
-
-🔥 SULTANS EL ZALL`);
+📌 Decision:
+${decision}`);
 
           await member.send({ embeds: [embed] });
-        } catch (err) {
-          console.log(`❌ Couldn't DM ${member.user.tag}`);
-        }
+        } catch {}
       });
     }
   }
 });
 
-// 🔥 الترحيب
+// ================= تسجيل + نشر الفيديوهات =================
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+  if (!message.guild) return;
+
+  const hasRole = message.member.roles.cache.has(CREATOR_ROLE_ID);
+
+  // 🔹 تسجيل
+  if (message.content === "!register") {
+    if (!hasRole) {
+      return message.reply("❌ انت مش صانع محتوى");
+    }
+
+    registered.add(message.author.id);
+    return message.reply("✅ تم تسجيلك كصانع محتوى");
+  }
+
+  // 🔹 فحص لينكات
+  const isLink =
+    message.content.includes("tiktok.com") ||
+    message.content.includes("instagram.com") ||
+    message.content.includes("youtube.com");
+
+  if (!isLink) return;
+  if (!hasRole) return;
+
+  if (!registered.has(message.author.id)) {
+    return message.reply("❌ لازم تسجل الأول باستخدام !register");
+  }
+
+  try {
+    const channel = await client.channels.fetch(PREVIEW_CHANNEL_ID);
+
+    const embed = new EmbedBuilder()
+      .setColor("#ff0050")
+      .setTitle("🎬 New Content Uploaded")
+      .setDescription(`👤 Creator: ${message.author}
+
+📱 Platform Link:
+${message.content}
+
+🔥 SULTANS EL ZALL`);
+
+    await channel.send({
+      content: `🚨 <@&${CREATOR_ROLE_ID}> New Video!`,
+      embeds: [embed],
+    });
+
+    await message.delete(); // يحذف الرسالة الأصلية
+  } catch (err) {
+    console.log("Error:", err);
+  }
+});
+
+// ================= الترحيب =================
 client.on("guildMemberAdd", async (member) => {
   try {
     const channel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
 
-    // رسالة في السيرفر
     if (channel) {
-      channel.send({
-        content: `🔥 Welcome ${member} to **SULTANS EL ZALL** 👑`,
-      });
+      channel.send(`🔥 Welcome ${member} to SULTANS EL ZALL 👑`);
     }
 
-    // DM
     await member.send({
       embeds: [
         {
@@ -118,16 +172,11 @@ client.on("guildMemberAdd", async (member) => {
           title: "👑 Welcome to SULTANS EL ZALL",
           description: `👋 Hello ${member.user.username}
 
-🔥 Welcome to the gang  
-📜 Check the rules and enjoy your stay  
-
-💀 SULTANS EL ZALL`,
+🔥 Welcome to the gang`,
         },
       ],
     });
-  } catch (err) {
-    console.log("❌ Error welcoming user:", err);
-  }
+  } catch {}
 });
 
 client.login(TOKEN);
