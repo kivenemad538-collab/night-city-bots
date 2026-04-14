@@ -24,102 +24,115 @@ const client = new Client({
 const TOKEN = process.env.TOKEN;
 
 // IDs 👇 عدلهم
-const DECISION_CHANNEL_ID = "1492903374872383578";
-const WELCOME_CHANNEL_ID = "1492901647452737576";
-const PREVIEW_CHANNEL_ID = "1493430556321517709";
-const CREATOR_ROLE_ID = "1493427075904966766";
+const DECISION_CHANNEL_ID = "PUT_DECISION_CHANNEL_ID";
+const WELCOME_CHANNEL_ID = "PUT_WELCOME_CHANNEL_ID";
+const PREVIEW_CHANNEL_ID = "PUT_PREVIEW_CHANNEL_ID";
+const REGISTER_CHANNEL_ID = "PUT_REGISTER_CHANNEL_ID";
+const CREATOR_ROLE_ID = "PUT_CREATOR_ROLE_ID";
 
-// 🧠 تسجيل المستخدمين
+// 🧠 المسجلين
 const registered = new Set();
 
 // ================= READY =================
 client.once("ready", async () => {
   console.log(`🔥 Logged in as ${client.user.tag}`);
 
-  const channel = await client.channels.fetch(DECISION_CHANNEL_ID);
+  // زرار القرارات
+  const decisionChannel = await client.channels.fetch(DECISION_CHANNEL_ID);
 
-  const button = new ButtonBuilder()
+  const decisionBtn = new ButtonBuilder()
     .setCustomId("decision_button")
     .setLabel("📢 قرارات العصابة")
     .setStyle(ButtonStyle.Danger);
 
-  const row = new ActionRowBuilder().addComponents(button);
+  await decisionChannel.send({
+    content: "اضغط الزر لإرسال قرار",
+    components: [new ActionRowBuilder().addComponents(decisionBtn)],
+  });
 
-  await channel.send({
-    content: "اضغط الزر لإرسال قرار من الإدارة",
-    components: [row],
+  // زرار التسجيل
+  const registerChannel = await client.channels.fetch(REGISTER_CHANNEL_ID);
+
+  const registerBtn = new ButtonBuilder()
+    .setCustomId("register_creator")
+    .setLabel("🎬 تسجيل صانع محتوى")
+    .setStyle(ButtonStyle.Success);
+
+  await registerChannel.send({
+    content: "اضغط الزر للتسجيل كصانع محتوى",
+    components: [new ActionRowBuilder().addComponents(registerBtn)],
   });
 });
 
-// ================= القرارات =================
+// ================= BUTTONS =================
 client.on("interactionCreate", async (interaction) => {
-  if (interaction.isButton()) {
-    if (interaction.customId === "decision_button") {
-      const modal = new ModalBuilder()
-        .setCustomId("decision_modal")
-        .setTitle("اكتب قرار العصابة");
+  // زرار التسجيل
+  if (interaction.isButton() && interaction.customId === "register_creator") {
+    const hasRole = interaction.member.roles.cache.has(CREATOR_ROLE_ID);
 
-      const input = new TextInputBuilder()
-        .setCustomId("decision_text")
-        .setLabel("اكتب القرار هنا")
-        .setStyle(TextInputStyle.Paragraph)
-        .setRequired(true);
-
-      const row = new ActionRowBuilder().addComponents(input);
-      modal.addComponents(row);
-
-      await interaction.showModal(modal);
-    }
-  }
-
-  if (interaction.isModalSubmit()) {
-    if (interaction.customId === "decision_modal") {
-      const decision = interaction.fields.getTextInputValue("decision_text");
-
-      await interaction.reply({
-        content: "✅ تم إرسال القرار",
+    if (!hasRole) {
+      return interaction.reply({
+        content: "❌ انت مش صانع محتوى",
         ephemeral: true,
       });
-
-      const members = await interaction.guild.members.fetch();
-
-      members.forEach(async (member) => {
-        if (member.user.bot) return;
-
-        try {
-          const embed = new EmbedBuilder()
-            .setColor("#ff0000")
-            .setTitle("📢 Message from SULTANS EL ZALL")
-            .setDescription(`👋 Hello ${member}
-
-📌 Decision:
-${decision}`);
-
-          await member.send({ embeds: [embed] });
-        } catch {}
-      });
     }
+
+    registered.add(interaction.user.id);
+
+    return interaction.reply({
+      content: "✅ تم تسجيلك كصانع محتوى",
+      ephemeral: true,
+    });
+  }
+
+  // زرار القرارات
+  if (interaction.isButton() && interaction.customId === "decision_button") {
+    const modal = new ModalBuilder()
+      .setCustomId("decision_modal")
+      .setTitle("اكتب قرار العصابة");
+
+    const input = new TextInputBuilder()
+      .setCustomId("decision_text")
+      .setLabel("اكتب القرار هنا")
+      .setStyle(TextInputStyle.Paragraph);
+
+    modal.addComponents(new ActionRowBuilder().addComponents(input));
+
+    await interaction.showModal(modal);
+  }
+
+  // مودال القرار
+  if (interaction.isModalSubmit() && interaction.customId === "decision_modal") {
+    const decision = interaction.fields.getTextInputValue("decision_text");
+
+    await interaction.reply({
+      content: "✅ تم إرسال القرار",
+      ephemeral: true,
+    });
+
+    const members = await interaction.guild.members.fetch();
+
+    members.forEach(async (member) => {
+      if (member.user.bot) return;
+
+      try {
+        const embed = new EmbedBuilder()
+          .setColor("#ff0000")
+          .setTitle("📢 SULTANS EL ZALL")
+          .setDescription(`📌 ${decision}`);
+
+        await member.send({ embeds: [embed] });
+      } catch {}
+    });
   }
 });
 
-// ================= تسجيل + نشر الفيديوهات =================
+// ================= الفيديوهات =================
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
-  if (!message.guild) return;
 
   const hasRole = message.member.roles.cache.has(CREATOR_ROLE_ID);
 
-  // 🔹 تسجيل
-  if (message.content === "!register") {
-    if (!hasRole) {
-      return message.reply("❌ انت مش صانع محتوى");
-    }
-
-    registered.add(message.author.id);
-    return message.reply("✅ تم تسجيلك كصانع محتوى");
-  }
-
-  // 🔹 فحص لينكات
   const isLink =
     message.content.includes("tiktok.com") ||
     message.content.includes("instagram.com") ||
@@ -127,32 +140,26 @@ client.on("messageCreate", async (message) => {
 
   if (!isLink) return;
   if (!hasRole) return;
-
-  if (!registered.has(message.author.id)) {
-    return message.reply("❌ لازم تسجل الأول باستخدام !register");
-  }
+  if (!registered.has(message.author.id)) return;
 
   try {
     const channel = await client.channels.fetch(PREVIEW_CHANNEL_ID);
 
     const embed = new EmbedBuilder()
       .setColor("#ff0050")
-      .setTitle("🎬 New Content Uploaded")
-      .setDescription(`👤 Creator: ${message.author}
+      .setTitle("🎬 New Content")
+      .setDescription(`👤 ${message.author}
 
-📱 Platform Link:
-${message.content}
-
-🔥 SULTANS EL ZALL`);
+🔗 ${message.content}`);
 
     await channel.send({
-      content: `🚨 <@&${CREATOR_ROLE_ID}> New Video!`,
+      content: `🚨 <@&${CREATOR_ROLE_ID}>`,
       embeds: [embed],
     });
 
-    await message.delete(); // يحذف الرسالة الأصلية
+    await message.delete();
   } catch (err) {
-    console.log("Error:", err);
+    console.log(err);
   }
 });
 
@@ -162,20 +169,10 @@ client.on("guildMemberAdd", async (member) => {
     const channel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
 
     if (channel) {
-      channel.send(`🔥 Welcome ${member} to SULTANS EL ZALL 👑`);
+      channel.send(`🔥 Welcome ${member}`);
     }
 
-    await member.send({
-      embeds: [
-        {
-          color: 0xff0000,
-          title: "👑 Welcome to SULTANS EL ZALL",
-          description: `👋 Hello ${member.user.username}
-
-🔥 Welcome to the gang`,
-        },
-      ],
-    });
+    await member.send("👑 Welcome to SULTANS EL ZALL");
   } catch {}
 });
 
