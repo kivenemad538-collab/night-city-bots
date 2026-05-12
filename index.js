@@ -1,1191 +1,747 @@
 require("dotenv").config();
 
 const {
-  Client,
-  GatewayIntentBits,
-  Partials,
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
-  Events
-} = require("discord.js");
+Client,
+GatewayIntentBits,
+Partials,
+EmbedBuilder,
+ActionRowBuilder,
+ButtonBuilder,
+ButtonStyle,
+Events,
+ModalBuilder,
+TextInputBuilder,
+TextInputStyle
+}=require("discord.js");
 
-const fs = require("fs");
+const client=new Client({
+intents:[
+GatewayIntentBits.Guilds,
+GatewayIntentBits.GuildMembers,
+GatewayIntentBits.GuildMessages,
+GatewayIntentBits.MessageContent,
+GatewayIntentBits.DirectMessages
+],
+partials:[Partials.Channel]
+});
 
-const TOKEN = process.env.TOKEN;
+const CONFIG={
+TOKEN:process.env.TOKEN,
+SERVER_NAME:"Nova CFW RP",
+COLOR:"#ff0000",
+SUCCESS_COLOR:"#00ff88",
+ERROR_COLOR:"#ff0000",
 
-// ======================================================
-// CONFIG
-// ======================================================
+LOGO:"PUT_SERVER_LOGO_LINK",
+WELCOME_IMAGE:"PUT_WELCOME_IMAGE_LINK",
+RULES_IMAGE:"PUT_RULES_IMAGE_LINK",
 
-const CONFIG = {
+WELCOME_CHANNEL_ID:"PUT_WELCOME_CHANNEL_ID",
+SERVER_REVIEW_CHANNEL_ID:"PUT_SERVER_REVIEW_CHANNEL_ID",
+STAFF_REVIEW_CHANNEL_ID:"PUT_STAFF_REVIEW_CHANNEL_ID",
+CREATOR_REVIEW_CHANNEL_ID:"PUT_CREATOR_REVIEW_CHANNEL_ID",
+RATING_CHANNEL_ID:"PUT_RATING_CHANNEL_ID",
 
-  SERVER_NAME: "Nova Cfw RP",
+AUTO_ROLE_ID:"PUT_AUTO_ROLE_ID",
+SERVER_ACCEPT_ROLE_ID:"PUT_SERVER_ACCEPT_ROLE_ID",
+STAFF_ACCEPT_ROLE_ID:"PUT_STAFF_ACCEPT_ROLE_ID",
+CREATOR_ACCEPT_ROLE_ID:"PUT_CREATOR_ACCEPT_ROLE_ID",
+FIRST_FAIL_ROLE_ID:"PUT_FIRST_FAIL_ROLE_ID",
+SECOND_FAIL_ROLE_ID:"PUT_SECOND_FAIL_ROLE_ID",
 
-  // ================= CHANNELS =================
+SERVER_RULES_LINK:"PUT_SERVER_RULES_LINK",
+DISCORD_RULES_LINK:"PUT_DISCORD_RULES_LINK",
+VOICE_LINK:"PUT_VOICE_CHANNEL_LINK",
 
-  WELCOME_CHANNEL_ID: "WELCOME_CHANNEL_ID",
-
-  RULES_CHANNEL_ID: "RULES_CHANNEL_ID",
-
-  SERVER_APPLY_CHANNEL_ID: "SERVER_APPLY_CHANNEL_ID",
-
-  RATING_REVIEW_CHANNEL_ID: "RATING_REVIEW_CHANNEL_ID",
-
-  SERVER_REVIEW_CHANNEL_ID: "SERVER_REVIEW_CHANNEL_ID",
-
-  CREATOR_REVIEW_CHANNEL_ID: "CREATOR_REVIEW_CHANNEL_ID",
-
-  ADMIN_REVIEW_CHANNEL_ID: "ADMIN_REVIEW_CHANNEL_ID",
-
-  VOICE_INTERVIEW_CHANNEL: "VOICE_INTERVIEW_CHANNEL_ID",
-
-  // ================= ACCEPT ROLES =================
-
-  SERVER_ACCEPT_ROLE: "SERVER_ACCEPT_ROLE_ID",
-
-  CREATOR_ACCEPT_ROLE: "CREATOR_ACCEPT_ROLE_ID",
-
-  ADMIN_ACCEPT_ROLE: "ADMIN_ACCEPT_ROLE_ID",
-
-  // ================= FAIL ROLES =================
-
-  SERVER_FAIL_ROLE_1: "SERVER_FAIL_ROLE_1",
-
-  SERVER_FAIL_ROLE_2: "SERVER_FAIL_ROLE_2"
-
+ADMIN_ROLE_IDS:[
+"PUT_ADMIN_ROLE_1",
+"PUT_ADMIN_ROLE_2"
+]
 };
 
-// ======================================================
-// FILES
-// ======================================================
+const ratedUsers=new Set();
+const serverApplied=new Set();
+const staffApplied=new Set();
+const creatorApplied=new Set();
+const serverRejectCount=new Map();
+const serverCooldown=new Map();
 
-const RATE_FILE = "./ratings.json";
-
-const APPLY_FILE = "./applyData.json";
-
-if (!fs.existsSync(RATE_FILE)) {
-
-  fs.writeFileSync(
-    RATE_FILE,
-    JSON.stringify({ ratedUsers: [] }, null, 2)
-  );
-
+function isAdmin(member){
+return member.roles.cache.some(r=>CONFIG.ADMIN_ROLE_IDS.includes(r.id));
 }
 
-if (!fs.existsSync(APPLY_FILE)) {
-
-  fs.writeFileSync(
-    APPLY_FILE,
-    JSON.stringify({ failedUsers: {} }, null, 2)
-  );
-
+function premiumFooter(){
+return {text:`${CONFIG.SERVER_NAME} • الإدارة الرسمية`};
 }
 
-function readRateData() {
-
-  return JSON.parse(
-    fs.readFileSync(RATE_FILE)
-  );
-
+function disabledRow(label,style){
+return new ActionRowBuilder().addComponents(
+new ButtonBuilder()
+.setCustomId("done_disabled")
+.setLabel(label)
+.setStyle(style)
+.setDisabled(true)
+);
 }
 
-function saveRateData(data) {
+function welcomeButtons(userId=null){
+const row1=new ActionRowBuilder().addComponents(
+new ButtonBuilder()
+.setLabel("📜 قوانين السيرفر")
+.setStyle(ButtonStyle.Link)
+.setURL(CONFIG.SERVER_RULES_LINK),
+new ButtonBuilder()
+.setLabel("📖 قوانين الديسكورد")
+.setStyle(ButtonStyle.Link)
+.setURL(CONFIG.DISCORD_RULES_LINK)
+);
 
-  fs.writeFileSync(
-    RATE_FILE,
-    JSON.stringify(data, null, 2)
-  );
+const row2=new ActionRowBuilder().addComponents(
+new ButtonBuilder()
+.setCustomId(userId?`apply_server_${userId}`:"apply_server")
+.setLabel("📨 تقديم السيرفر")
+.setStyle(ButtonStyle.Danger),
+new ButtonBuilder()
+.setCustomId(userId?`rate_${userId}`:"rate_server")
+.setLabel("⭐ تقييم السيرفر")
+.setStyle(ButtonStyle.Success)
+);
 
+const row3=new ActionRowBuilder().addComponents(
+new ButtonBuilder()
+.setCustomId("apply_staff")
+.setLabel("🛡️ تقديم إداري")
+.setStyle(ButtonStyle.Secondary),
+new ButtonBuilder()
+.setCustomId("apply_creator")
+.setLabel("🎥 تقديم صانع محتوى")
+.setStyle(ButtonStyle.Primary)
+);
+
+return [row1,row2,row3];
 }
 
-function readApplyData() {
+client.once(Events.ClientReady,async()=>{
+console.log(`${client.user.tag} READY`);
 
-  return JSON.parse(
-    fs.readFileSync(APPLY_FILE)
-  );
+const channel=await client.channels.fetch(CONFIG.WELCOME_CHANNEL_ID).catch(()=>null);
+if(!channel)return;
 
-}
+const embed=new EmbedBuilder()
+.setColor(CONFIG.COLOR)
+.setThumbnail(CONFIG.LOGO)
+.setImage(CONFIG.WELCOME_IMAGE)
+.setDescription(`
+# 👋 Welcome To ${CONFIG.SERVER_NAME}
 
-function saveApplyData(data) {
+━━━━━━━━━━━━━━━━━━
 
-  fs.writeFileSync(
-    APPLY_FILE,
-    JSON.stringify(data, null, 2)
-  );
+مرحباً بك في السيرفر الرسمي  
+يرجى قراءة القوانين قبل التقديم
 
-}
+📌 يمكنك من هنا:
+• قراءة قوانين السيرفر  
+• قراءة قوانين الديسكورد  
+• التقديم على الوايت ليست  
+• التقديم على الإدارة  
+• التقديم كصانع محتوى  
+• تقييم السيرفر  
 
-// ======================================================
-// CLIENT
-// ======================================================
+━━━━━━━━━━━━━━━━━━
 
-const client = new Client({
+# ⚠️ مهم
+أي مخالفة للقوانين قد تعرضك للعقوبة
+`)
+.setFooter(premiumFooter());
 
-  intents: [
-
-    GatewayIntentBits.Guilds,
-
-    GatewayIntentBits.GuildMembers,
-
-    GatewayIntentBits.GuildMessages,
-
-    GatewayIntentBits.MessageContent,
-
-    GatewayIntentBits.DirectMessages
-
-  ],
-
-  partials: [Partials.Channel]
-
+await channel.send({
+embeds:[embed],
+components:welcomeButtons()
+});
 });
 
-// ======================================================
-// READY
-// ======================================================
-
-client.once(Events.ClientReady, () => {
-
-  console.log(`✅ Logged in as ${client.user.tag}`);
-
-});
-
-// ======================================================
-// QUESTIONS
-// ======================================================
-
-const questions = {
-
-  server: [
-
-    "اسمك الحقيقي؟",
-
-    "سنك كام؟",
-
-    "اسمك داخل اللعبة؟",
-
-    "عندك خبرة رول بلاي قد ايه؟",
-
-    "يعني ايه RDM؟",
-
-    "يعني ايه VDM؟",
-
-    "يعني ايه Meta Gaming؟",
-
-    "يعني ايه Power Gaming؟",
-
-    "لو حصلت مشكلة مع لاعب هتتصرف ازاي؟",
-
-    "ليه اخترت Nova Cfw RP؟"
-
-  ],
-
-  creator: [
-
-    "اسمك؟",
-
-    "سنك كام؟",
-
-    "اسم قناتك؟",
-
-    "لينك القناة؟",
-
-    "عدد المتابعين كام؟",
-
-    "بتنزل محتوى ايه؟",
-
-    "بتستخدم اي منصة؟",
-
-    "هل تقدر تنزل محتوى باستمرار؟",
-
-    "هل عندك خبرة رول بلاي؟",
-
-    "ليه عايز تبقى صانع محتوى؟"
-
-  ],
-
-  admin: [
-
-    "اسمك؟",
-
-    "سنك كام؟",
-
-    "عندك خبرة ادارة؟",
-
-    "اشتغلت اداري قبل كده؟",
-
-    "ازاي تتعامل مع المشاكل؟",
-
-    "لو صاحبك غلط تعمل ايه؟",
-
-    "ازاي تتعامل مع اللاعبين؟",
-
-    "قد ايه تقدر تتواجد؟",
-
-    "ايه اهم صفات الاداري؟",
-
-    "ليه عايز تبقى اداري؟"
-
-  ]
-
-};
-
-const reviewChannels = {
-
-  server: CONFIG.SERVER_REVIEW_CHANNEL_ID,
-
-  creator: CONFIG.CREATOR_REVIEW_CHANNEL_ID,
-
-  admin: CONFIG.ADMIN_REVIEW_CHANNEL_ID
-
-};
-
-const appNames = {
-
-  server: "📄 تقديم السيرفر",
-
-  creator: "🎥 تقديم صانع محتوى",
-
-  admin: "🛡️ تقديم إداري"
-
-};
-
-// ======================================================
-// WELCOME SYSTEM
-// ======================================================
-
-client.on(Events.GuildMemberAdd, async (member) => {
-
-  const channel =
-    member.guild.channels.cache.get(
-      CONFIG.WELCOME_CHANNEL_ID
-    );
-
-  if (!channel) return;
-
-  const embed = new EmbedBuilder()
-
-    .setColor("#00AEEF")
-
-    .setTitle(`👋 Welcome To ${CONFIG.SERVER_NAME}`)
-
-    .setDescription(
-
-      `━━━━━━━━━━━━━━━━━━\n\n` +
-
-      `✨ أهلا بيك ${member}\n\n` +
-
-      `نورت سيرفر ${CONFIG.SERVER_NAME}\n\n` +
-
-      `📜 اقرأ القوانين قبل التقديم.\n\n` +
-
-      `📄 قدم على الوايت ليست.\n\n` +
-
-      `⭐ تقدر تقيم السيرفر.\n\n` +
-
-      `👥 أنت العضو رقم ${member.guild.memberCount}\n\n` +
-
-      `━━━━━━━━━━━━━━━━━━`
-
-    )
-
-    .setThumbnail(
-      member.user.displayAvatarURL({
-        dynamic: true
-      })
-    )
-
-    .setImage(
-      "https://media.discordapp.net/attachments/1363239682770722867/1369055770666152076/standard.gif"
-    )
-
-    .setFooter({
-      text: `${CONFIG.SERVER_NAME}`
-    })
-
-    .setTimestamp();
-
-  const row =
-    new ActionRowBuilder().addComponents(
-
-      new ButtonBuilder()
-
-        .setLabel("📜 قوانين السيرفر")
-
-        .setStyle(ButtonStyle.Link)
-
-        .setURL(
-          `https://discord.com/channels/${member.guild.id}/${CONFIG.RULES_CHANNEL_ID}`
-        ),
-
-      new ButtonBuilder()
-
-        .setLabel("📄 تقديم السيرفر")
-
-        .setStyle(ButtonStyle.Link)
-
-        .setURL(
-          `https://discord.com/channels/${member.guild.id}/${CONFIG.SERVER_APPLY_CHANNEL_ID}`
-        ),
-
-      new ButtonBuilder()
-
-        .setCustomId(`rate_${member.id}`)
-
-        .setLabel("⭐ تقييم السيرفر")
-
-        .setStyle(ButtonStyle.Primary)
-
-    );
-
-  await channel.send({
-
-    content: `${member}`,
-
-    embeds: [embed],
-
-    components: [row]
-
-  });
-
-});
-
-// ======================================================
-// APPLY PANEL
-// ======================================================
-
-client.on(Events.MessageCreate, async (message) => {
-
-  if (message.author.bot) return;
-
-  if (message.content === "!setup-apply") {
-
-    const embed = new EmbedBuilder()
-
-      .setColor("#00AEEF")
-
-      .setTitle(`📄 تقديمات ${CONFIG.SERVER_NAME}`)
-
-      .setDescription(
-
-        `━━━━━━━━━━━━━━━━━━\n\n` +
-
-        `اختار نوع التقديم المناسب.\n\n` +
-
-        `📄 تقديم السيرفر\n\n` +
-
-        `🎥 تقديم صانع محتوى\n\n` +
-
-        `🛡️ تقديم إداري\n\n` +
-
-        `━━━━━━━━━━━━━━━━━━`
-
-      )
-
-      .setFooter({
-        text: `${CONFIG.SERVER_NAME}`
-      });
-
-    const row =
-      new ActionRowBuilder().addComponents(
-
-        new ButtonBuilder()
-
-          .setCustomId("apply_server")
-
-          .setLabel("📄 تقديم السيرفر")
-
-          .setStyle(ButtonStyle.Primary),
-
-        new ButtonBuilder()
-
-          .setCustomId("apply_creator")
-
-          .setLabel("🎥 تقديم صانع محتوى")
-
-          .setStyle(ButtonStyle.Success),
-
-        new ButtonBuilder()
-
-          .setCustomId("apply_admin")
-
-          .setLabel("🛡️ تقديم إداري")
-
-          .setStyle(ButtonStyle.Danger)
-
-      );
-
-    await message.channel.send({
-
-      embeds: [embed],
-
-      components: [row]
-
-    });
-
-  }
-
-});
-
-// ======================================================
-// INTERACTIONS
-// ======================================================
-
-client.on(Events.InteractionCreate, async (interaction) => {
-
-  // ======================================================
-  // BUTTONS
-  // ======================================================
-
-  if (interaction.isButton()) {
-
-    // ================= APPLY =================
-
-    if (interaction.customId === "apply_server") {
-      return startApplication(interaction, "server");
-    }
-
-    if (interaction.customId === "apply_creator") {
-      return startApplication(interaction, "creator");
-    }
-
-    if (interaction.customId === "apply_admin") {
-      return startApplication(interaction, "admin");
-    }
-
-    // ================= RATING =================
-
-    if (interaction.customId.startsWith("rate_")) {
-
-      const targetId =
-        interaction.customId.split("_")[1];
-
-      if (interaction.user.id !== targetId) {
-
-        return interaction.reply({
-
-          content:
-            "❌ التقييم لصاحب رسالة الترحيب فقط.",
-
-          ephemeral: true
-
-        });
-
-      }
-
-      const data = readRateData();
-
-      if (
-        data.ratedUsers.includes(
-          interaction.user.id
-        )
-      ) {
-
-        return interaction.reply({
-
-          content:
-            "❌ أنت قيمت السيرفر قبل كده.",
-
-          ephemeral: true
-
-        });
-
-      }
-
-      const row =
-        new ActionRowBuilder().addComponents(
-
-          new ButtonBuilder()
-            .setCustomId("star_1")
-            .setLabel("⭐")
-            .setStyle(ButtonStyle.Secondary),
-
-          new ButtonBuilder()
-            .setCustomId("star_2")
-            .setLabel("⭐⭐")
-            .setStyle(ButtonStyle.Secondary),
-
-          new ButtonBuilder()
-            .setCustomId("star_3")
-            .setLabel("⭐⭐⭐")
-            .setStyle(ButtonStyle.Secondary),
-
-          new ButtonBuilder()
-            .setCustomId("star_4")
-            .setLabel("⭐⭐⭐⭐")
-            .setStyle(ButtonStyle.Secondary),
-
-          new ButtonBuilder()
-            .setCustomId("star_5")
-            .setLabel("⭐⭐⭐⭐⭐")
-            .setStyle(ButtonStyle.Secondary)
-
-        );
-
-      return interaction.reply({
-
-        content:
-          "⭐ اختار تقييمك للسيرفر",
-
-        components: [row],
-
-        ephemeral: true
-
-      });
-
-    }
-
-    // ================= STAR BUTTON =================
-
-    if (interaction.customId.startsWith("star_")) {
-
-      const stars =
-        interaction.customId.split("_")[1];
-
-      const modal = new ModalBuilder()
-
-        .setCustomId(`rate_modal_${stars}`)
-
-        .setTitle("تقييم السيرفر");
-
-      const reason =
-        new TextInputBuilder()
-
-          .setCustomId("reason")
-
-          .setLabel("اكتب سبب التقييم")
-
-          .setStyle(TextInputStyle.Paragraph)
-
-          .setRequired(true);
-
-      modal.addComponents(
-
-        new ActionRowBuilder().addComponents(reason)
-
-      );
-
-      return interaction.showModal(modal);
-
-    }
-
-    // ================= ACCEPT =================
-
-    if (interaction.customId.startsWith("accept_")) {
-
-      const args =
-        interaction.customId.split("_");
-
-      const type = args[1];
-
-      const userId = args[2];
-
-      const member =
-        await interaction.guild.members.fetch(userId)
-        .catch(() => null);
-
-      if (!member) return;
-
-      // ===== SERVER ACCEPT =====
-
-      if (type === "server") {
-
-        const role =
-          interaction.guild.roles.cache.get(
-            CONFIG.SERVER_ACCEPT_ROLE
-          );
-
-        if (role) {
-
-          await member.roles.add(role)
-          .catch(() => {});
-
-        }
-
-        const embed = new EmbedBuilder()
-
-          .setColor("#00ff66")
-
-          .setTitle("🎉 تم قبول طلبك!")
-
-          .setDescription(
-
-            `━━━━━━━━━━━━━━━━━━\n\n` +
-
-            `✅ تم قبولك في السيرفر.\n\n` +
-
-            `🎖️ تم إعطائك رتبة القبول.\n\n` +
-
-            `🎤 ادخل المقابلة الصوتية من الزر بالأسفل.\n\n` +
-
-            `━━━━━━━━━━━━━━━━━━`
-
-          )
-
-          .setFooter({
-            text: `${CONFIG.SERVER_NAME}`
-          });
-
-        const row =
-          new ActionRowBuilder().addComponents(
-
-            new ButtonBuilder()
-
-              .setLabel("🎤 دخول المقابلة")
-
-              .setStyle(ButtonStyle.Link)
-
-              .setURL(
-                `https://discord.com/channels/${interaction.guild.id}/${CONFIG.VOICE_INTERVIEW_CHANNEL}`
-              )
-
-          );
-
-        await member.send({
-
-          embeds: [embed],
-
-          components: [row]
-
-        });
-
-      }
-
-      // ===== CREATOR ACCEPT =====
-
-      if (type === "creator") {
-
-        const role =
-          interaction.guild.roles.cache.get(
-            CONFIG.CREATOR_ACCEPT_ROLE
-          );
-
-        if (role) {
-
-          await member.roles.add(role)
-          .catch(() => {});
-
-        }
-
-        const embed = new EmbedBuilder()
-
-          .setColor("#00ff66")
-
-          .setTitle("🎥 تم قبولك كصانع محتوى!")
-
-          .setDescription(
-
-            `━━━━━━━━━━━━━━━━━━\n\n` +
-
-            `🎉 مبروك!\n\n` +
-
-            `تم إعطائك رتبة صانع المحتوى.\n\n` +
-
-            `يمكنك الآن نشر محتوى السيرفر.\n\n` +
-
-            `━━━━━━━━━━━━━━━━━━`
-
-          );
-
-        await member.send({
-          embeds: [embed]
-        });
-
-      }
-
-      // ===== ADMIN ACCEPT =====
-
-      if (type === "admin") {
-
-        const role =
-          interaction.guild.roles.cache.get(
-            CONFIG.ADMIN_ACCEPT_ROLE
-          );
-
-        if (role) {
-
-          await member.roles.add(role)
-          .catch(() => {});
-
-        }
-
-        const embed = new EmbedBuilder()
-
-          .setColor("#00ff66")
-
-          .setTitle("🛡️ تم قبولك في الإدارة!")
-
-          .setDescription(
-
-            `━━━━━━━━━━━━━━━━━━\n\n` +
-
-            `🎉 مبروك!\n\n` +
-
-            `تم إعطائك رتبة الإدارة.\n\n` +
-
-            `يرجى الالتزام بالقوانين.\n\n` +
-
-            `━━━━━━━━━━━━━━━━━━`
-
-          );
-
-        await member.send({
-          embeds: [embed]
-        });
-
-      }
-
-      await interaction.message.edit({
-        components: []
-      });
-
-      return interaction.reply({
-
-        content:
-          "✅ تم قبول التقديم.",
-
-        ephemeral: true
-
-      });
-
-    }
-
-    // ================= REJECT =================
-
-    if (interaction.customId.startsWith("reject_")) {
-
-      const args =
-        interaction.customId.split("_");
-
-      const type = args[1];
-
-      const userId = args[2];
-
-      const modal = new ModalBuilder()
-
-        .setCustomId(
-          `reject_modal_${type}_${userId}`
-        )
-
-        .setTitle("سبب الرفض");
-
-      const input =
-        new TextInputBuilder()
-
-          .setCustomId("rejectReason")
-
-          .setLabel("اكتب سبب الرفض")
-
-          .setStyle(TextInputStyle.Paragraph)
-
-          .setRequired(true);
-
-      modal.addComponents(
-
-        new ActionRowBuilder().addComponents(input)
-
-      );
-
-      return interaction.showModal(modal);
-
-    }
-
-  }
-
-  // ======================================================
-  // MODALS
-  // ======================================================
-
-  if (interaction.isModalSubmit()) {
-
-    // ================= RATE MODAL =================
-
-    if (
-      interaction.customId.startsWith(
-        "rate_modal_"
-      )
-    ) {
-
-      const stars =
-        interaction.customId.split("_")[2];
-
-      const reason =
-        interaction.fields.getTextInputValue(
-          "reason"
-        );
-
-      const data = readRateData();
-
-      data.ratedUsers.push(
-        interaction.user.id
-      );
-
-      saveRateData(data);
-
-      const channel =
-        interaction.guild.channels.cache.get(
-          CONFIG.RATING_REVIEW_CHANNEL_ID
-        );
-
-      const embed = new EmbedBuilder()
-
-        .setColor("#FFD700")
-
-        .setTitle("⭐ تقييم جديد للسيرفر")
-
-        .addFields(
-
-          {
-            name: "👤 الشخص",
-            value: `${interaction.user}`
-          },
-
-          {
-            name: "⭐ التقييم",
-            value:
-              `${"⭐".repeat(Number(stars))}`
-          },
-
-          {
-            name: "📝 السبب",
-            value: reason
-          }
-
-        )
-
-        .setTimestamp();
-
-      await channel.send({
-        embeds: [embed]
-      });
-
-      return interaction.reply({
-
-        content:
-          "✅ تم إرسال تقييمك.",
-
-        ephemeral: true
-
-      });
-
-    }
-
-    // ================= REJECT MODAL =================
-
-    if (
-      interaction.customId.startsWith(
-        "reject_modal_"
-      )
-    ) {
-
-      const args =
-        interaction.customId.split("_");
-
-      const type = args[2];
-
-      const userId = args[3];
-
-      const reason =
-        interaction.fields.getTextInputValue(
-          "rejectReason"
-        );
-
-      const member =
-        await interaction.guild.members.fetch(userId)
-        .catch(() => null);
-
-      if (!member) return;
-
-      const embed = new EmbedBuilder()
-
-        .setColor("#ff0000")
-
-        .setTitle("❌ تم رفض طلبك")
-
-        .setDescription(
-
-          `━━━━━━━━━━━━━━━━━━\n\n` +
-
-          `للأسف تم رفض تقديمك.\n\n` +
-
-          `📝 السبب:\n${reason}\n\n` +
-
-          `━━━━━━━━━━━━━━━━━━`
-
-        );
-
-      await member.send({
-        embeds: [embed]
-      });
-
-      // ===== FAIL SYSTEM =====
-
-      if (type === "server") {
-
-        const data = readApplyData();
-
-        if (!data.failedUsers[userId]) {
-          data.failedUsers[userId] = 0;
-        }
-
-        data.failedUsers[userId]++;
-
-        saveApplyData(data);
-
-        if (
-          data.failedUsers[userId] === 1
-        ) {
-
-          const role =
-            interaction.guild.roles.cache.get(
-              CONFIG.SERVER_FAIL_ROLE_1
-            );
-
-          if (role) {
-
-            await member.roles.add(role)
-            .catch(() => {});
-
-          }
-
-        }
-
-        if (
-          data.failedUsers[userId] >= 2
-        ) {
-
-          const role =
-            interaction.guild.roles.cache.get(
-              CONFIG.SERVER_FAIL_ROLE_2
-            );
-
-          if (role) {
-
-            await member.roles.add(role)
-            .catch(() => {});
-
-          }
-
-        }
-
-      }
-
-      return interaction.reply({
-
-        content:
-          "✅ تم رفض التقديم.",
-
-        ephemeral: true
-
-      });
-
-    }
-
-  }
-
-});
-
-// ======================================================
-// APPLICATION FUNCTION
-// ======================================================
-
-async function startApplication(
-  interaction,
-  type
-) {
-
-  const applyData = readApplyData();
-
-  if (
-
-    type === "server" &&
-
-    applyData.failedUsers[
-      interaction.user.id
-    ] >= 2
-
-  ) {
-
-    return interaction.reply({
-
-      content:
-        "❌ تم منعك من التقديم بسبب الرسوب مرتين.",
-
-      ephemeral: true
-
-    });
-
-  }
-
-  await interaction.reply({
-
-    content:
-      "📩 تم إرسال الأسئلة لك بالخاص.",
-
-    ephemeral: true
-
-  });
-
-  const user = interaction.user;
-
-  try {
-
-    const dm = await user.createDM();
-
-    const startEmbed = new EmbedBuilder()
-
-      .setColor("#00AEEF")
-
-      .setTitle(appNames[type])
-
-      .setDescription(
-
-        `━━━━━━━━━━━━━━━━━━\n\n` +
-
-        `جاوب على الأسئلة بدقة.\n\n` +
-
-        `━━━━━━━━━━━━━━━━━━`
-
-      );
-
-    await dm.send({
-      embeds: [startEmbed]
-    });
-
-    const answers = [];
-
-    for (
-      let i = 0;
-      i < questions[type].length;
-      i++
-    ) {
-
-      await dm.send(
-        `### ${i + 1}. ${questions[type][i]}`
-      );
-
-      const collected =
-        await dm.awaitMessages({
-
-          filter:
-            (m) =>
-              m.author.id === user.id,
-
-          max: 1,
-
-          time: 600000
-
-        });
-
-      if (!collected.size) {
-
-        return dm.send(
-          "❌ انتهى الوقت."
-        );
-
-      }
-
-      answers.push(
-        collected.first().content
-      );
-
-    }
-
-    await dm.send(
-      "✅ تم إرسال التقديم للإدارة."
-    );
-
-    const reviewChannel =
-      interaction.guild.channels.cache.get(
-        reviewChannels[type]
-      );
-
-    const embed = new EmbedBuilder()
-
-      .setColor("#00AEEF")
-
-      .setTitle(appNames[type])
-
-      .setDescription(
-        `📥 تقديم جديد من ${user}`
-      )
-
-      .setThumbnail(
-        user.displayAvatarURL({
-          dynamic: true
-        })
-      )
-
-      .setTimestamp();
-
-    questions[type].forEach((q, i) => {
-
-      embed.addFields({
-
-        name: `❓ ${q}`,
-
-        value: `📝 ${answers[i]}`,
-
-        inline: false
-
-      });
-
-    });
-
-    const row =
-      new ActionRowBuilder().addComponents(
-
-        new ButtonBuilder()
-
-          .setCustomId(
-            `accept_${type}_${user.id}`
-          )
-
-          .setLabel("✅ قبول")
-
-          .setStyle(ButtonStyle.Success),
-
-        new ButtonBuilder()
-
-          .setCustomId(
-            `reject_${type}_${user.id}`
-          )
-
-          .setLabel("❌ رفض")
-
-          .setStyle(ButtonStyle.Danger)
-
-      );
-
-    await reviewChannel.send({
-
-      embeds: [embed],
-
-      components: [row]
-
-    });
-
-  } catch (err) {
-
-    return interaction.followUp({
-
-      content:
-        "❌ افتح الخاص وجرب تاني.",
-
-      ephemeral: true
-
-    });
-
-  }
-
+client.on(Events.GuildMemberAdd,async member=>{
+if(CONFIG.AUTO_ROLE_ID!=="PUT_AUTO_ROLE_ID"){
+member.roles.add(CONFIG.AUTO_ROLE_ID).catch(()=>{});
 }
 
-// ======================================================
-// LOGIN
-// ======================================================
+const channel=member.guild.channels.cache.get(CONFIG.WELCOME_CHANNEL_ID);
+if(!channel)return;
 
-client.login(TOKEN);
+const embed=new EmbedBuilder()
+.setColor(CONFIG.COLOR)
+.setThumbnail(member.user.displayAvatarURL())
+.setImage(CONFIG.WELCOME_IMAGE)
+.setDescription(`
+# 👋 Welcome To ${CONFIG.SERVER_NAME}
+
+━━━━━━━━━━━━━━━━━━
+
+أهلاً بك ${member}
+
+نتمنى لك تجربة ممتعة داخل السيرفر ❤️
+
+📌 اقرأ القوانين جيداً  
+📨 ثم قدم على الوايت ليست  
+⭐ ويمكنك تقييم السيرفر من رسالتك فقط
+
+━━━━━━━━━━━━━━━━━━
+`)
+.setFooter(premiumFooter());
+
+channel.send({
+content:`${member}`,
+embeds:[embed],
+components:welcomeButtons(member.id)
+});
+});
+
+client.on(Events.InteractionCreate,async interaction=>{
+
+if(interaction.isButton()&&interaction.customId.startsWith("rate_")){
+const ownerId=interaction.customId.split("_")[1];
+
+if(interaction.user.id!==ownerId){
+return interaction.reply({content:"❌ لا يمكنك تقييم رسالة شخص آخر",ephemeral:true});
+}
+
+if(ratedUsers.has(interaction.user.id)){
+return interaction.reply({content:"❌ لقد قمت بالتقييم بالفعل",ephemeral:true});
+}
+
+const row=new ActionRowBuilder().addComponents(
+new ButtonBuilder().setCustomId("star_1").setLabel("⭐").setStyle(ButtonStyle.Secondary),
+new ButtonBuilder().setCustomId("star_2").setLabel("⭐⭐").setStyle(ButtonStyle.Secondary),
+new ButtonBuilder().setCustomId("star_3").setLabel("⭐⭐⭐").setStyle(ButtonStyle.Secondary),
+new ButtonBuilder().setCustomId("star_4").setLabel("⭐⭐⭐⭐").setStyle(ButtonStyle.Primary),
+new ButtonBuilder().setCustomId("star_5").setLabel("⭐⭐⭐⭐⭐").setStyle(ButtonStyle.Success)
+);
+
+return interaction.reply({
+content:"⭐ اختر تقييمك للسيرفر",
+components:[row],
+ephemeral:true
+});
+}
+
+if(interaction.isButton()&&interaction.customId==="rate_server"){
+if(ratedUsers.has(interaction.user.id)){
+return interaction.reply({content:"❌ لقد قمت بالتقييم بالفعل",ephemeral:true});
+}
+
+const row=new ActionRowBuilder().addComponents(
+new ButtonBuilder().setCustomId("star_1").setLabel("⭐").setStyle(ButtonStyle.Secondary),
+new ButtonBuilder().setCustomId("star_2").setLabel("⭐⭐").setStyle(ButtonStyle.Secondary),
+new ButtonBuilder().setCustomId("star_3").setLabel("⭐⭐⭐").setStyle(ButtonStyle.Secondary),
+new ButtonBuilder().setCustomId("star_4").setLabel("⭐⭐⭐⭐").setStyle(ButtonStyle.Primary),
+new ButtonBuilder().setCustomId("star_5").setLabel("⭐⭐⭐⭐⭐").setStyle(ButtonStyle.Success)
+);
+
+return interaction.reply({
+content:"⭐ اختر تقييمك للسيرفر",
+components:[row],
+ephemeral:true
+});
+}
+
+if(interaction.isButton()&&interaction.customId.startsWith("star_")){
+const stars=interaction.customId.split("_")[1];
+
+const modal=new ModalBuilder()
+.setCustomId(`rating_modal_${stars}`)
+.setTitle("سبب التقييم");
+
+const reason=new TextInputBuilder()
+.setCustomId("reason")
+.setLabel("اكتب سبب التقييم")
+.setStyle(TextInputStyle.Paragraph)
+.setRequired(true);
+
+modal.addComponents(new ActionRowBuilder().addComponents(reason));
+return interaction.showModal(modal);
+}
+
+if(interaction.isButton()&&(interaction.customId==="apply_server"||interaction.customId.startsWith("apply_server_"))){
+return startApplication(interaction,"server");
+}
+
+if(interaction.isButton()&&interaction.customId==="apply_staff"){
+return startApplication(interaction,"staff");
+}
+
+if(interaction.isButton()&&interaction.customId==="apply_creator"){
+return startApplication(interaction,"creator");
+}
+
+if(interaction.isButton()&&interaction.customId.startsWith("accept_")){
+if(!isAdmin(interaction.member)){
+return interaction.reply({content:"❌ ليس لديك صلاحية",ephemeral:true});
+}
+
+const parts=interaction.customId.split("_");
+const type=parts[1];
+const userId=parts[2];
+
+await acceptUser(interaction,type,userId);
+}
+
+if(interaction.isButton()&&interaction.customId.startsWith("reject_")){
+if(!isAdmin(interaction.member)){
+return interaction.reply({content:"❌ ليس لديك صلاحية",ephemeral:true});
+}
+
+const parts=interaction.customId.split("_");
+const type=parts[1];
+const userId=parts[2];
+
+const modal=new ModalBuilder()
+.setCustomId(`reject_modal_${type}_${userId}`)
+.setTitle("سبب الرفض");
+
+const reason=new TextInputBuilder()
+.setCustomId("reason")
+.setLabel("اكتب سبب الرفض")
+.setStyle(TextInputStyle.Paragraph)
+.setRequired(true);
+
+modal.addComponents(new ActionRowBuilder().addComponents(reason));
+return interaction.showModal(modal);
+}
+
+if(interaction.isModalSubmit()&&interaction.customId.startsWith("rating_modal_")){
+const stars=interaction.customId.split("_")[2];
+const reason=interaction.fields.getTextInputValue("reason");
+
+ratedUsers.add(interaction.user.id);
+
+const channel=client.channels.cache.get(CONFIG.RATING_CHANNEL_ID)||client.channels.cache.get(CONFIG.SERVER_REVIEW_CHANNEL_ID);
+
+const embed=new EmbedBuilder()
+.setColor(CONFIG.COLOR)
+.setThumbnail(interaction.user.displayAvatarURL())
+.setImage(CONFIG.WELCOME_IMAGE)
+.setDescription(`
+# ⭐ تقييم جديد
+
+━━━━━━━━━━━━━━━━━━
+
+👤 الشخص:
+${interaction.user}
+
+⭐ عدد النجوم:
+${"⭐".repeat(Number(stars))}
+
+📝 السبب:
+${reason}
+
+━━━━━━━━━━━━━━━━━━
+`)
+.setFooter(premiumFooter());
+
+channel?.send({embeds:[embed]});
+
+await interaction.reply({content:"✅ شكراً لتقييمك",ephemeral:true});
+
+interaction.user.send({
+embeds:[
+new EmbedBuilder()
+.setColor(CONFIG.SUCCESS_COLOR)
+.setImage(CONFIG.WELCOME_IMAGE)
+.setDescription(`
+# ❤️ شكراً لتقييمك
+
+━━━━━━━━━━━━━━━━━━
+
+نشكرك على وقتك ودعمك لسيرفر  
+**${CONFIG.SERVER_NAME}**
+
+━━━━━━━━━━━━━━━━━━
+`)
+.setFooter(premiumFooter())
+]
+}).catch(()=>{});
+}
+
+if(interaction.isModalSubmit()&&interaction.customId.startsWith("reject_modal_")){
+const parts=interaction.customId.split("_");
+const type=parts[2];
+const userId=parts[3];
+const reason=interaction.fields.getTextInputValue("reason");
+
+await rejectUser(interaction,type,userId,reason);
+}
+});
+
+async function startApplication(interaction,type){
+const userId=interaction.user.id;
+
+if(type==="server"){
+if(serverCooldown.has(userId))return interaction.reply({content:"❌ لا يمكنك التقديم الآن، حاول بعد أسبوع",ephemeral:true});
+if(serverApplied.has(userId))return interaction.reply({content:"❌ لديك تقديم سيرفر قيد المراجعة",ephemeral:true});
+serverApplied.add(userId);
+}
+
+if(type==="staff"){
+if(staffApplied.has(userId))return interaction.reply({content:"❌ لديك تقديم إداري قيد المراجعة",ephemeral:true});
+staffApplied.add(userId);
+}
+
+if(type==="creator"){
+if(creatorApplied.has(userId))return interaction.reply({content:"❌ لديك تقديم صانع محتوى قيد المراجعة",ephemeral:true});
+creatorApplied.add(userId);
+}
+
+await interaction.reply({content:"📨 تم فتح التقديم في الخاص",ephemeral:true});
+
+const dm=await interaction.user.createDM().catch(()=>null);
+if(!dm)return interaction.followUp({content:"❌ افتح الخاص عندك",ephemeral:true});
+
+const title=type==="server"?"📨 تقديم السيرفر":type==="staff"?"🛡️ تقديم إداري":"🎥 تقديم صانع محتوى";
+
+await dm.send({
+embeds:[
+new EmbedBuilder()
+.setColor(CONFIG.COLOR)
+.setThumbnail(CONFIG.LOGO)
+.setImage(CONFIG.WELCOME_IMAGE)
+.setDescription(`
+# ${title}
+
+━━━━━━━━━━━━━━━━━━
+
+تم فتح التقديم بنجاح
+
+قبل أن نبدأ، أرسل أي رسالة للتأكيد
+أنك جاهز للإجابة على الأسئلة
+
+━━━━━━━━━━━━━━━━━━
+`)
+.setFooter(premiumFooter())
+]
+});
+
+const filter=m=>m.author.id===interaction.user.id;
+const ready=await dm.awaitMessages({filter,max:1,time:300000}).catch(()=>null);
+if(!ready)return;
+
+const questions=getQuestions(type);
+const answers=[];
+
+for(let i=0;i<questions.length;i++){
+await dm.send({
+embeds:[
+new EmbedBuilder()
+.setColor(CONFIG.COLOR)
+.setDescription(`
+# السؤال ${i+1}/${questions.length}
+
+━━━━━━━━━━━━━━━━━━
+
+${questions[i]}
+
+━━━━━━━━━━━━━━━━━━
+`)
+.setFooter(premiumFooter())
+]
+});
+
+const collected=await dm.awaitMessages({filter,max:1,time:600000}).catch(()=>null);
+if(!collected)return;
+
+answers.push(collected.first().content);
+}
+
+await sendReview(interaction,type,questions,answers);
+
+await dm.send({
+embeds:[
+new EmbedBuilder()
+.setColor(CONFIG.SUCCESS_COLOR)
+.setThumbnail(CONFIG.LOGO)
+.setImage(CONFIG.WELCOME_IMAGE)
+.setDescription(`
+# ✅ تم استلام التقديم
+
+━━━━━━━━━━━━━━━━━━
+
+تم إرسال تقديمك للإدارة للمراجعة
+
+يرجى الانتظار وعدم فتح تقديم جديد
+
+نتمنى لك التوفيق ❤️
+
+━━━━━━━━━━━━━━━━━━
+`)
+.setFooter(premiumFooter())
+]
+});
+}
+
+function getQuestions(type){
+if(type==="server")return [
+"ما اسمك الحقيقي ؟",
+"كم عمرك ؟",
+"ما اسم شخصيتك داخل الرول بلاي ؟",
+"هل لديك خبرة في الرول بلاي ؟ اشرح خبرتك",
+"ما معنى Fail RP ؟",
+"ما معنى Meta Gaming ؟",
+"ما معنى Power Gaming ؟",
+"ما معنى Random Deathmatch ؟",
+"كيف تتصرف إذا تم خطفك داخل السيرفر ؟",
+"كيف تتصرف إذا خسرت سيناريو ؟",
+"هل قرأت قوانين السيرفر ؟",
+"لماذا تريد الانضمام إلى Nova CFW RP ؟"
+];
+
+if(type==="staff")return [
+"ما اسمك الحقيقي ؟",
+"كم عمرك ؟",
+"ما خبرتك الإدارية السابقة ؟",
+"لماذا تريد الانضمام للإدارة ؟",
+"كم ساعة تستطيع التواجد يومياً ؟",
+"كيف تتعامل مع لاعب غاضب ؟",
+"كيف تتصرف مع إداري خالف القوانين ؟",
+"ما معنى الحياد الإداري ؟",
+"هل تستطيع حضور مقابلة صوتية ؟",
+"ما نقاط قوتك كإداري ؟",
+"ما نقاط ضعفك ؟",
+"لماذا يجب قبولك في الإدارة ؟"
+];
+
+return [
+"ما اسمك الحقيقي ؟",
+"كم عمرك ؟",
+"ما اسمك كصانع محتوى ؟",
+"ما المنصة التي تنشر عليها ؟",
+"كم عدد المتابعين ؟",
+"ضع رابط حسابك أو قناتك",
+"ما نوع المحتوى الذي تقدمه ؟",
+"كم فيديو تستطيع نشره أسبوعياً ؟",
+"هل تستطيع عمل محتوى خاص بالسيرفر ؟",
+"هل لديك خبرة في مونتاج الفيديو ؟",
+"لماذا تريد أن تصبح صانع محتوى في Nova CFW RP ؟",
+"هل توافق على الالتزام بقوانين النشر ؟"
+];
+}
+
+async function sendReview(interaction,type,questions,answers){
+const channelId=type==="server"?CONFIG.SERVER_REVIEW_CHANNEL_ID:type==="staff"?CONFIG.STAFF_REVIEW_CHANNEL_ID:CONFIG.CREATOR_REVIEW_CHANNEL_ID;
+const channel=client.channels.cache.get(channelId);
+if(!channel)return;
+
+const title=type==="server"?"📨 تقديم سيرفر جديد":type==="staff"?"🛡️ تقديم إداري جديد":"🎥 تقديم صانع محتوى جديد";
+
+const embed=new EmbedBuilder()
+.setColor(CONFIG.COLOR)
+.setThumbnail(interaction.user.displayAvatarURL())
+.setImage(CONFIG.WELCOME_IMAGE)
+.setDescription(`
+# ${title}
+
+━━━━━━━━━━━━━━━━━━
+
+👤 المتقدم:
+${interaction.user}
+
+🆔 ID:
+\`${interaction.user.id}\`
+
+━━━━━━━━━━━━━━━━━━
+`)
+.setFooter(premiumFooter());
+
+questions.forEach((q,i)=>{
+embed.addFields({
+name:`❓ ${i+1}. ${q}`,
+value:answers[i].slice(0,1000)||"لا يوجد رد"
+});
+});
+
+const row=new ActionRowBuilder().addComponents(
+new ButtonBuilder()
+.setCustomId(`accept_${type}_${interaction.user.id}`)
+.setLabel("✅ قبول")
+.setStyle(ButtonStyle.Success),
+new ButtonBuilder()
+.setCustomId(`reject_${type}_${interaction.user.id}`)
+.setLabel("❌ رفض")
+.setStyle(ButtonStyle.Danger)
+);
+
+channel.send({
+content:`${interaction.user}`,
+embeds:[embed],
+components:[row]
+});
+}
+
+async function acceptUser(interaction,type,userId){
+const member=await interaction.guild.members.fetch(userId).catch(()=>null);
+const user=await client.users.fetch(userId).catch(()=>null);
+if(!user)return interaction.reply({content:"❌ لم أجد الشخص",ephemeral:true});
+
+let roleId=null;
+let embed=null;
+let components=[];
+
+if(type==="server"){
+roleId=CONFIG.SERVER_ACCEPT_ROLE_ID;
+embed=new EmbedBuilder()
+.setColor(CONFIG.SUCCESS_COLOR)
+.setImage(CONFIG.WELCOME_IMAGE)
+.setDescription(`
+# 🎉 تم قبول طلبك في السيرفر!
+
+━━━━━━━━━━━━━━━━━━
+
+# ✅ تهانينا!
+
+تم قبولك مبدئياً في  
+**${CONFIG.SERVER_NAME}**
+
+تم تحويلك الآن إلى مرحلة المقابلة الصوتية
+
+اضغط الزر بالأسفل للدخول إلى المقابلة الصوتية
+
+━━━━━━━━━━━━━━━━━━
+`)
+.setFooter(premiumFooter());
+
+components=[
+new ActionRowBuilder().addComponents(
+new ButtonBuilder()
+.setLabel("🎤 دخول المقابلة الصوتية")
+.setStyle(ButtonStyle.Link)
+.setURL(CONFIG.VOICE_LINK)
+)
+];
+
+serverApplied.delete(userId);
+}
+
+if(type==="staff"){
+roleId=CONFIG.STAFF_ACCEPT_ROLE_ID;
+embed=new EmbedBuilder()
+.setColor(CONFIG.SUCCESS_COLOR)
+.setImage(CONFIG.WELCOME_IMAGE)
+.setDescription(`
+# 🛡️ تم قبولك في الإدارة!
+
+━━━━━━━━━━━━━━━━━━
+
+# 🎉 مبروك!
+
+تم قبولك ضمن فريق إدارة  
+**${CONFIG.SERVER_NAME}**
+
+تم منحك الرتبة بنجاح
+
+يرجى الالتزام بالقوانين
+والتعامل باحترام مع جميع اللاعبين
+
+يمنع إساءة استخدام الصلاحيات
+
+━━━━━━━━━━━━━━━━━━
+`)
+.setFooter(premiumFooter());
+
+staffApplied.delete(userId);
+}
+
+if(type==="creator"){
+roleId=CONFIG.CREATOR_ACCEPT_ROLE_ID;
+embed=new EmbedBuilder()
+.setColor(CONFIG.SUCCESS_COLOR)
+.setImage(CONFIG.WELCOME_IMAGE)
+.setDescription(`
+# 🎥 تم قبولك كصانع محتوى!
+
+━━━━━━━━━━━━━━━━━━
+
+# 🎉 مبروك!
+
+تم قبولك في برنامج صناع المحتوى داخل  
+**${CONFIG.SERVER_NAME}**
+
+يمكنك الآن نشر محتوى السيرفر
+والمساهمة في نمو المجتمع
+
+يرجى الالتزام بقوانين النشر
+
+━━━━━━━━━━━━━━━━━━
+`)
+.setFooter(premiumFooter());
+
+creatorApplied.delete(userId);
+}
+
+if(member&&roleId&&!roleId.startsWith("PUT_")){
+member.roles.add(roleId).catch(()=>{});
+}
+
+await user.send({embeds:[embed],components}).catch(()=>{});
+
+await interaction.update({
+components:[disabledRow("✅ تم القبول",ButtonStyle.Success)]
+});
+}
+
+async function rejectUser(interaction,type,userId,reason){
+const user=await client.users.fetch(userId).catch(()=>null);
+const member=await interaction.guild.members.fetch(userId).catch(()=>null);
+if(!user)return interaction.reply({content:"❌ لم أجد الشخص",ephemeral:true});
+
+if(type==="server"){
+serverApplied.delete(userId);
+
+const count=(serverRejectCount.get(userId)||0)+1;
+serverRejectCount.set(userId,count);
+
+if(member&&CONFIG.FIRST_FAIL_ROLE_ID&&!CONFIG.FIRST_FAIL_ROLE_ID.startsWith("PUT_")){
+member.roles.add(CONFIG.FIRST_FAIL_ROLE_ID).catch(()=>{});
+}
+
+if(count>=2){
+if(member&&CONFIG.SECOND_FAIL_ROLE_ID&&!CONFIG.SECOND_FAIL_ROLE_ID.startsWith("PUT_")){
+member.roles.add(CONFIG.SECOND_FAIL_ROLE_ID).catch(()=>{});
+}
+
+serverCooldown.set(userId,true);
+setTimeout(()=>serverCooldown.delete(userId),604800000);
+}
+}
+
+if(type==="staff")staffApplied.delete(userId);
+if(type==="creator")creatorApplied.delete(userId);
+
+const title=type==="server"?"❌ تم رفض طلبك في السيرفر":type==="staff"?"❌ تم رفض طلبك الإداري":"❌ تم رفض طلب صانع المحتوى";
+
+const embed=new EmbedBuilder()
+.setColor(CONFIG.ERROR_COLOR)
+.setImage(CONFIG.WELCOME_IMAGE)
+.setDescription(`
+# ${title}
+
+━━━━━━━━━━━━━━━━━━
+
+للأسف تم رفض طلبك الحالي بعد المراجعة
+
+📝 السبب:
+${reason}
+
+يمكنك تحسين مستواك والمحاولة لاحقاً
+
+نتمنى لك التوفيق ❤️
+
+━━━━━━━━━━━━━━━━━━
+`)
+.setFooter(premiumFooter());
+
+await user.send({embeds:[embed]}).catch(()=>{});
+
+await interaction.update({
+components:[disabledRow("❌ تم الرفض",ButtonStyle.Danger)]
+});
+}
+
+client.login(CONFIG.TOKEN);
