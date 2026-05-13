@@ -1,12 +1,25 @@
 {
   "name": "nova-cfw-rp-bot",
   "version": "1.0.0",
+  "description": "Nova CFW RP Premium Discord Bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
+  "keywords": [
+    "discord",
+    "fivem",
+    "nova",
+    "cfw",
+    "rp"
+  ],
+  "author": "Nova CFW RP",
+  "license": "ISC",
   "dependencies": {
     "discord.js": "^14.15.3",
     "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
