@@ -957,7 +957,15 @@ time:300000
 
 if(!collected)return;
 
-answers.push(collected.first().content);
+if(!collected || collected.size === 0){
+
+await dm.send(":x: انتهى وقت التقديم");
+
+return;
+
+}
+
+answers.push(collected.first()?.content || "لا يوجد رد");
 
 }
 
