@@ -82,9 +82,9 @@ FIRST_FAIL_ROLE_ID:"1477568923208519681",
 
 SECOND_FAIL_ROLE_ID:"1477569051185119332",
 
-SERVER_RULES_LINK:"https://docs.google.com/document/d/1uCZBWJd5j4JGyacLFM-823YsTAnhSq88R_OfSaZ1Uv8/edit?tab=t.i85m88kkl7vw",
+SERVER_RULES_LINK:"https://docs.google.com/document/d/1uCZBWJd5j4JGyacLFM-823YsTAnhSq88R_OfSaZ1Uv8/edit?usp=sharing",
 
-DISCORD_RULES_LINK:"https://docs.google.com/document/d/1OVjgthyRPQ63sD49ezOjQ8pf-Q8soL5BJdZFFX-UmnM/edit?pli=1&tab=t.0#heading=h.htkdqjco0q8o",
+DISCORD_RULES_LINK:"https://docs.google.com/document/d/1OVjgthyRPQ63sD49ezOjQ8pf-Q8soL5BJdZFFX-UmnM/edit?usp=sharing",
 
 ADMIN_ROLE_IDS:[
 "1494041543630131360",
