@@ -1049,10 +1049,6 @@ for(let i=0;i<questions.length;i++){
 const q=questions[i];
 
 const questionEmbed=new EmbedBuilder()
-
-.setColor("#ff0000")
-
-const questionEmbed=new EmbedBuilder()
 .setColor("#ff0000")
 .setDescription(`
 # السؤال رقم ${i+1}
