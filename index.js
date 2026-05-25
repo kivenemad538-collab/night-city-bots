@@ -1052,35 +1052,13 @@ const questionEmbed=new EmbedBuilder()
 
 .setColor("#ff0000")
 
-.setAuthor({
-name:"Nova CFW Application System",
-iconURL:CONFIG.LOGO
-})
-
+const questionEmbed=new EmbedBuilder()
+.setColor("#ff0000")
 .setDescription(`
 # السؤال رقم ${i+1}
 
-━━━━━━━━━━━━━━━━━━
-
-## ${q}
-
-━━━━━━━━━━━━━━━━━━
-
-> ✍️ اكتب إجابتك بالأسفل
-
-> ❌ لإلغاء التقديم اكتب:
-\`cancel\`
-
-━━━━━━━━━━━━━━━━━━
-`)
-
-.setThumbnail(CONFIG.LOGO)
-
-.setImage(CONFIG.WELCOME_IMAGE)
-
-.setFooter({
-text:"Nova CFW RP • نظام التقديم"
-});
+${q}
+`);
 
 await dm.send({
 embeds:[questionEmbed]
