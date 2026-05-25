@@ -1,8 +1,3 @@
-// ==========================================
-// NOVA CFW RP - FULL PREMIUM SYSTEM
-// WELCOME + RULES + RATING + APPLICATIONS
-// ==========================================
-
 require("dotenv").config();
 
 const {
@@ -97,6 +92,19 @@ ADMIN_ROLE_IDS:[
 "1467593770898948158",
 "1489374601027915776",
 "1490793455952199870"
+],
+
+SERVER_ACCEPT_ADMIN_ROLES:[
+"1494041543630131360",
+"1465798793772666941"
+],
+
+STAFF_ACCEPT_ADMIN_ROLES:[
+"1494041543630131360"
+],
+
+CREATOR_ACCEPT_ADMIN_ROLES:[
+"1494041543630131360"
 ]
 
 };
@@ -125,8 +133,22 @@ function channelLink(channelId){
 return `https://discord.com/channels/${CONFIG.GUILD_ID}/${channelId}`;
 }
 
-function isAdmin(member){
-return member.roles.cache.some(r=>CONFIG.ADMIN_ROLE_IDS.includes(r.id));
+function canManage(member,type){
+
+if(type==="server"){
+return member.roles.cache.some(r=>CONFIG.SERVER_ACCEPT_ADMIN_ROLES.includes(r.id));
+}
+
+if(type==="staff"){
+return member.roles.cache.some(r=>CONFIG.STAFF_ACCEPT_ADMIN_ROLES.includes(r.id));
+}
+
+if(type==="creator"){
+return member.roles.cache.some(r=>CONFIG.CREATOR_ACCEPT_ADMIN_ROLES.includes(r.id));
+}
+
+return false;
+
 }
 
 function footer(){
@@ -143,6 +165,22 @@ new ButtonBuilder()
 .setStyle(style)
 .setDisabled(true)
 );
+}
+
+function removeApplicationStatus(type,userId){
+
+if(type==="server"){
+serverApplied.delete(userId);
+}
+
+if(type==="staff"){
+staffApplied.delete(userId);
+}
+
+if(type==="creator"){
+creatorApplied.delete(userId);
+}
+
 }
 
 function welcomeButtons(userId=null){
@@ -681,18 +719,18 @@ return startApplication(interaction,"creator");
 
 if(interaction.isButton()&&interaction.customId.startsWith("accept_")){
 
-if(!isAdmin(interaction.member)){
-return interaction.reply({
-content:"❌ ليس لديك صلاحية",
-ephemeral:true
-});
-}
-
 const parts=interaction.customId.split("_");
 
 const type=parts[1];
 
 const userId=parts[2];
+
+if(!canManage(interaction.member,type)){
+return interaction.reply({
+content:"❌ ليس لديك صلاحية قبول هذا التقديم",
+ephemeral:true
+});
+}
 
 return acceptApplication(interaction,type,userId);
 
@@ -704,18 +742,18 @@ return acceptApplication(interaction,type,userId);
 
 if(interaction.isButton()&&interaction.customId.startsWith("reject_")){
 
-if(!isAdmin(interaction.member)){
-return interaction.reply({
-content:"❌ ليس لديك صلاحية",
-ephemeral:true
-});
-}
-
 const parts=interaction.customId.split("_");
 
 const type=parts[1];
 
 const userId=parts[2];
+
+if(!canManage(interaction.member,type)){
+return interaction.reply({
+content:"❌ ليس لديك صلاحية رفض هذا التقديم",
+ephemeral:true
+});
+}
 
 const modal=new ModalBuilder()
 
@@ -902,30 +940,52 @@ ephemeral:true
 const dm=await interaction.user.createDM().catch(()=>null);
 
 if(!dm){
+
+removeApplicationStatus(type,userId);
+
 return interaction.followUp({
 content:"❌ افتح الخاص عندك",
 ephemeral:true
 });
+
 }
 
 const title=type==="server"?"📨 التقديم على السيرفر":type==="staff"?"🛡️ التقديم الإداري":"🎥 تقديم صانع محتوى";
 
 const intro=new EmbedBuilder()
 
-.setColor(CONFIG.COLOR)
+.setColor("#ff0000")
+
+.setAuthor({
+name:"Nova CFW Application System",
+iconURL:CONFIG.LOGO
+})
 
 .setDescription(`
 # ${title}
 
 ━━━━━━━━━━━━━━━━━━
 
-يرجى إرسال أي رسالة
-للتأكيد أنك جاهز للتقديم
+> أهلاً بك في نظام التقديم الرسمي
+
+📌 سيتم سؤالك عدة أسئلة  
+يرجى الإجابة بجدية
+
+❌ إذا أردت إلغاء التقديم في أي وقت  
+قم بكتابة:
+
+\`cancel\`
 
 ━━━━━━━━━━━━━━━━━━
 `)
 
-.setImage(CONFIG.WELCOME_IMAGE);
+.setThumbnail(CONFIG.LOGO)
+
+.setImage(CONFIG.WELCOME_IMAGE)
+
+.setFooter({
+text:"Nova CFW RP • نظام التقديم"
+});
 
 await dm.send({
 embeds:[intro]
@@ -939,15 +999,92 @@ max:1,
 time:300000
 }).catch(()=>null);
 
-if(!ready)return;
+if(!ready || ready.size===0){
+
+removeApplicationStatus(type,userId);
+
+return;
+
+}
+
+const readyAnswer=ready.first().content;
+
+if(readyAnswer.toLowerCase()==="cancel"){
+
+removeApplicationStatus(type,userId);
+
+return dm.send({
+embeds:[
+new EmbedBuilder()
+
+.setColor("#ff0000")
+
+.setAuthor({
+name:"Nova CFW Application System",
+iconURL:CONFIG.LOGO
+})
+
+.setDescription(`
+# ❌ تم إلغاء التقديم
+
+━━━━━━━━━━━━━━━━━━
+
+تم إيقاف التقديم بنجاح
+
+يمكنك إعادة التقديم لاحقاً
+
+━━━━━━━━━━━━━━━━━━
+`)
+]
+});
+
+}
 
 const questions=getQuestions(type);
 
 const answers=[];
 
-for(const q of questions){
+for(let i=0;i<questions.length;i++){
 
-await dm.send(`❓ ${q}`);
+const q=questions[i];
+
+const questionEmbed=new EmbedBuilder()
+
+.setColor("#ff0000")
+
+.setAuthor({
+name:"Nova CFW Application System",
+iconURL:CONFIG.LOGO
+})
+
+.setDescription(`
+# السؤال رقم ${i+1}
+
+━━━━━━━━━━━━━━━━━━
+
+## ${q}
+
+━━━━━━━━━━━━━━━━━━
+
+> ✍️ اكتب إجابتك بالأسفل
+
+> ❌ لإلغاء التقديم اكتب:
+\`cancel\`
+
+━━━━━━━━━━━━━━━━━━
+`)
+
+.setThumbnail(CONFIG.LOGO)
+
+.setImage(CONFIG.WELCOME_IMAGE)
+
+.setFooter({
+text:"Nova CFW RP • نظام التقديم"
+});
+
+await dm.send({
+embeds:[questionEmbed]
+});
 
 const collected=await dm.awaitMessages({
 filter,
@@ -955,17 +1092,81 @@ max:1,
 time:300000
 }).catch(()=>null);
 
-if(!collected)return;
+if(!collected || collected.size===0){
 
-if(!collected || collected.size === 0){
+removeApplicationStatus(type,userId);
 
-await dm.send(":x: انتهى وقت التقديم");
+await dm.send({
+embeds:[
+new EmbedBuilder()
+
+.setColor("#ff0000")
+
+.setAuthor({
+name:"Nova CFW Application System",
+iconURL:CONFIG.LOGO
+})
+
+.setDescription(`
+# ❌ انتهى وقت التقديم
+
+━━━━━━━━━━━━━━━━━━
+
+لم يتم استلام أي رد منك
+
+يمكنك إعادة التقديم لاحقاً
+
+━━━━━━━━━━━━━━━━━━
+`)
+]
+});
 
 return;
 
 }
 
-answers.push(collected.first()?.content || "لا يوجد رد");
+const answer=collected.first().content;
+
+if(answer.toLowerCase()==="cancel"){
+
+removeApplicationStatus(type,userId);
+
+await dm.send({
+embeds:[
+new EmbedBuilder()
+
+.setColor("#ff0000")
+
+.setAuthor({
+name:"Nova CFW Application System",
+iconURL:CONFIG.LOGO
+})
+
+.setDescription(`
+# ❌ تم إلغاء التقديم
+
+━━━━━━━━━━━━━━━━━━
+
+تم إيقاف التقديم بنجاح
+
+يمكنك إعادة التقديم لاحقاً
+
+━━━━━━━━━━━━━━━━━━
+`)
+
+.setThumbnail(CONFIG.LOGO)
+
+.setFooter({
+text:"Nova CFW RP • نظام التقديم"
+})
+]
+});
+
+return;
+
+}
+
+answers.push(answer);
 
 }
 
@@ -976,6 +1177,11 @@ embeds:[
 new EmbedBuilder()
 
 .setColor("#00ff88")
+
+.setAuthor({
+name:"Nova CFW Application System",
+iconURL:CONFIG.LOGO
+})
 
 .setDescription(`
 # ✅ تم استلام تقديمك
@@ -989,6 +1195,8 @@ new EmbedBuilder()
 
 ━━━━━━━━━━━━━━━━━━
 `)
+
+.setThumbnail(CONFIG.LOGO)
 
 .setImage(CONFIG.WELCOME_IMAGE)
 ]
