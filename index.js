@@ -11,13 +11,15 @@ ButtonStyle,
 Events,
 ModalBuilder,
 TextInputBuilder,
-TextInputStyle
+TextInputStyle,
+StringSelectMenuBuilder
 }=require("discord.js");
 
 const client=new Client({
 intents:[
 GatewayIntentBits.Guilds,
 GatewayIntentBits.GuildMembers,
+GatewayIntentBits.GuildInvites,
 GatewayIntentBits.GuildMessages,
 GatewayIntentBits.MessageContent,
 GatewayIntentBits.DirectMessages
@@ -43,7 +45,11 @@ WELCOME_IMAGE:"https://cdn.discordapp.com/attachments/1475033418336174141/150270
 
 RULES_IMAGE:"https://cdn.discordapp.com/attachments/1475033418336174141/1502704262935740557/banner_connecting.png?ex=6a03f9a7&is=6a02a827&hm=837d5231b60e40b0c3afc9c3fbe6b3d67e5b4e79ad2acd0e440eab55d4358cba&",
 
-VOICE_LINK:"https://discord.com/channels/1465609781837303873/149834195649599899",
+VOICE_CHANNEL_ID:"149834195649599899",
+
+CONTROL_CHANNEL_ID:"1480098674578034698",
+
+CITY_NEWS_CHANNEL_ID:"1508975225667059847",
 
 GUILD_ID:"1465609781837303873",
 
@@ -104,8 +110,8 @@ SERVER_ACCEPT_ADMIN_ROLES:[
 "1489374601027915776",
 "1467593770898948158",
 "1502847873375670372",
-"1490793455952199870",  
-"1494088476889579622", 
+"1490793455952199870",
+"1494088476889579622",
 "1508294607459319828"
 ],
 
@@ -154,6 +160,16 @@ const serverRejectCount=new Map();
 
 const applyCooldown=new Map();
 
+const invitesCache=new Map();
+
+let SERVER_APPLICATIONS_OPEN=true;
+let STAFF_APPLICATIONS_OPEN=true;
+let CREATOR_APPLICATIONS_OPEN=true;
+let WELCOME_SYSTEM_OPEN=true;
+let RATING_SYSTEM_OPEN=true;
+
+let CITY_NEWS_ROLE_ID=null;
+
 //////////////////////////////
 // HELPERS
 //////////////////////////////
@@ -178,6 +194,10 @@ return member.roles.cache.some(r=>CONFIG.CREATOR_ACCEPT_ADMIN_ROLES.includes(r.i
 
 return false;
 
+}
+
+function canControl(member){
+return member.roles.cache.some(r=>CONFIG.ADMIN_ROLE_IDS.includes(r.id));
 }
 
 function footer(){
@@ -257,6 +277,58 @@ return [row];
 
 }
 
+function formatAccountAge(date){
+
+const now=Date.now();
+const diff=now-date.getTime();
+
+const days=Math.floor(diff/86400000);
+const months=Math.floor(days/30);
+const years=Math.floor(days/365);
+
+if(years>=1)return `منذ ${years} سنة`;
+if(months>=1)return `منذ ${months} شهر`;
+return `منذ ${days} يوم`;
+
+}
+
+async function cacheGuildInvites(guild){
+
+const invites=await guild.invites.fetch().catch(()=>null);
+
+if(!invites)return;
+
+invitesCache.set(guild.id,new Map(invites.map(invite=>[
+invite.code,
+{
+uses:invite.uses,
+inviter:invite.inviter
+}
+])));
+
+}
+
+async function findInviter(member){
+
+const oldInvites=invitesCache.get(member.guild.id);
+
+const newInvites=await member.guild.invites.fetch().catch(()=>null);
+
+if(!newInvites || !oldInvites)return null;
+
+const usedInvite=newInvites.find(invite=>{
+const old=oldInvites.get(invite.code);
+return old && invite.uses>old.uses;
+});
+
+await cacheGuildInvites(member.guild);
+
+if(!usedInvite)return null;
+
+return usedInvite.inviter||null;
+
+}
+
 //////////////////////////////
 // READY
 //////////////////////////////
@@ -265,51 +337,160 @@ client.once(Events.ClientReady,async()=>{
 
 console.log(`${client.user.tag} READY`);
 
+const guild=await client.guilds.fetch(CONFIG.GUILD_ID).catch(()=>null);
+
+if(guild){
+await cacheGuildInvites(guild);
+}
+
 //////////////////////////////
-// RULES CHANNEL PANEL
+// CONTROL PANEL
 //////////////////////////////
 
-const rulesChannel=await client.channels.fetch(CONFIG.RULES_CHANNEL_ID).catch(()=>null);
+const controlChannel=await client.channels.fetch(CONFIG.CONTROL_CHANNEL_ID).catch(()=>null);
 
-if(rulesChannel){
+if(controlChannel){
 
 const embed=new EmbedBuilder()
 
 .setColor(CONFIG.COLOR)
 
-.setTitle(`📜 قوانين ${CONFIG.SERVER_NAME}`)
+.setTitle("🎛️ لوحة تحكم Nova CFW RP")
 
 .setDescription(`
-# 📜 قوانين السيرفر
+# 🎛️ لوحة التحكم
 
 ━━━━━━━━━━━━━━━━━━
 
-مرحباً بك في قسم القوانين الخاص بسيرفر  
-**${CONFIG.SERVER_NAME}**
-
-يرجى قراءة القوانين جيداً قبل التقديم أو الدخول للسيرفر.
-
-━━━━━━━━━━━━━━━━━━
-
-📌 اضغط الأزرار بالأسفل لفتح:
-• قوانين السيرفر  
-• قوانين الديسكورد  
+من هنا تقدر تتحكم في:
+• فتح وقفل تقديم السيرفر
+• فتح وقفل تقديم الإدارة
+• فتح وقفل تقديم صانع المحتوى
+• فتح وقفل الترحيب
+• فتح وقفل التقييم
+• تحديد رول أخبار المدينة
+• إرسال أخبار المدينة
 
 ━━━━━━━━━━━━━━━━━━
-
-# ⚠️ مهم
-عدم قراءة القوانين لا يعفيك من العقوبة.
 `)
 
 .setThumbnail(CONFIG.LOGO)
 
-.setImage(CONFIG.RULES_IMAGE)
+.setImage(CONFIG.WELCOME_IMAGE)
 
 .setFooter(footer());
 
-await rulesChannel.send({
+const row1=new ActionRowBuilder().addComponents(
+
+new ButtonBuilder()
+.setCustomId("toggle_server_apply")
+.setLabel("📨 تقديم السيرفر")
+.setStyle(ButtonStyle.Danger),
+
+new ButtonBuilder()
+.setCustomId("toggle_staff_apply")
+.setLabel("🛡️ تقديم الإدارة")
+.setStyle(ButtonStyle.Secondary),
+
+new ButtonBuilder()
+.setCustomId("toggle_creator_apply")
+.setLabel("🎥 تقديم المحتوى")
+.setStyle(ButtonStyle.Primary)
+
+);
+
+const row2=new ActionRowBuilder().addComponents(
+
+new ButtonBuilder()
+.setCustomId("toggle_welcome")
+.setLabel("👋 الترحيب")
+.setStyle(ButtonStyle.Success),
+
+new ButtonBuilder()
+.setCustomId("toggle_rating")
+.setLabel("⭐ التقييم")
+.setStyle(ButtonStyle.Success),
+
+new ButtonBuilder()
+.setCustomId("send_city_news")
+.setLabel("📢 أخبار المدينة")
+.setStyle(ButtonStyle.Danger)
+
+);
+
+await controlChannel.send({
 embeds:[embed],
-components:rulesButtons()
+components:[row1,row2]
+});
+
+}
+
+//////////////////////////////
+// CITY NEWS PANEL
+//////////////////////////////
+
+const cityChannel=await client.channels.fetch(CONFIG.CITY_NEWS_CHANNEL_ID).catch(()=>null);
+
+if(cityChannel){
+
+const roles=cityChannel.guild.roles.cache
+.filter(r=>r.name!=="@everyone")
+.filter(r=>!r.managed)
+.first(25);
+
+const menu=new StringSelectMenuBuilder()
+.setCustomId("select_city_news_role")
+.setPlaceholder("🎭 اختار الرول اللي هيجيله أخبار المدينة");
+
+roles.forEach(role=>{
+menu.addOptions({
+label:role.name,
+value:role.id
+});
+});
+
+const embed=new EmbedBuilder()
+
+.setColor(CONFIG.COLOR)
+
+.setTitle("📢 نظام أخبار المدينة")
+
+.setDescription(`
+# 📢 أخبار المدينة
+
+━━━━━━━━━━━━━━━━━━
+
+اختار الرول من القائمة
+
+بعدها اضغط زر:
+**📢 إرسال خبر المدينة**
+
+البوت هيبعت الخبر لكل شخص معاه الرول
+وكل شخص هيجيله منشن لوحده في رسالته.
+
+━━━━━━━━━━━━━━━━━━
+`)
+
+.setThumbnail(CONFIG.LOGO)
+
+.setImage(CONFIG.WELCOME_IMAGE)
+
+.setFooter(footer());
+
+const row1=new ActionRowBuilder().addComponents(menu);
+
+const row2=new ActionRowBuilder().addComponents(
+
+new ButtonBuilder()
+.setCustomId("send_city_news")
+.setLabel("📢 إرسال خبر المدينة")
+.setStyle(ButtonStyle.Danger)
+
+);
+
+await cityChannel.send({
+embeds:[embed],
+components:[row1,row2]
 });
 
 }
@@ -527,35 +708,68 @@ components:welcomeButtons()
 
 client.on(Events.GuildMemberAdd,async member=>{
 
+if(!WELCOME_SYSTEM_OPEN)return;
+
 if(CONFIG.AUTO_ROLE_ID!=="PUT_AUTO_ROLE_ID"){
 member.roles.add(CONFIG.AUTO_ROLE_ID).catch(()=>{});
 }
+
+const inviter=await findInviter(member);
 
 const channel=member.guild.channels.cache.get(CONFIG.WELCOME_CHANNEL_ID);
 
 if(!channel)return;
 
+const joinedTime=Math.floor(Date.now()/1000);
+
+const inviteBy=inviter?`${inviter}`:"غير معروف";
+
+const inviteId=inviter?`\`${inviter.id}\``:"غير معروف";
+
 const embed=new EmbedBuilder()
 
 .setColor(CONFIG.COLOR)
 
+.setAuthor({
+name:member.user.username,
+iconURL:member.user.displayAvatarURL({dynamic:true})
+})
+
 .setDescription(`
-# 👋 Welcome To ${CONFIG.SERVER_NAME}
+# 🎉 مرحباً بك في ${CONFIG.SERVER_NAME}!
+
+${member} انضم إلى السيرفر!
 
 ━━━━━━━━━━━━━━━━━━
 
-أهلاً بك ${member}
+#${member.guild.memberCount}
 
-نتمنى لك تجربة ممتعة داخل السيرفر ❤️
+🎯 أنت العضو رقم
 
-📌 يرجى قراءة القوانين جيداً  
-📨 ثم التقديم على الوايت ليست  
-⭐ ويمكنك تقييم السيرفر من رسالتك فقط  
+👥 عدد الأعضاء
+**${member.guild.memberCount} عضو**
+
+👤 العضو
+${member}
+\`${member.user.username}\`
+
+🎮 نوع السيرفر
+**FiveM Server**
+
+🗓️ عمر الحساب
+**${formatAccountAge(member.user.createdAt)}**
+
+📅 تاريخ الانضمام
+<t:${joinedTime}:R>
+
+🎟️ الدعوة بواسطة
+${inviteBy}
+${inviteId}
 
 ━━━━━━━━━━━━━━━━━━
 `)
 
-.setThumbnail(member.user.displayAvatarURL())
+.setThumbnail(member.user.displayAvatarURL({dynamic:true}))
 
 .setImage(CONFIG.WELCOME_IMAGE)
 
@@ -569,6 +783,14 @@ components:welcomeButtons(member.id)
 
 });
 
+client.on(Events.InviteCreate,async invite=>{
+await cacheGuildInvites(invite.guild);
+});
+
+client.on(Events.InviteDelete,async invite=>{
+await cacheGuildInvites(invite.guild);
+});
+
 //////////////////////////////
 // INTERACTIONS
 //////////////////////////////
@@ -576,10 +798,143 @@ components:welcomeButtons(member.id)
 client.on(Events.InteractionCreate,async interaction=>{
 
 //////////////////////////////
+// CONTROL BUTTONS
+//////////////////////////////
+
+if(interaction.isButton()&&[
+"toggle_server_apply",
+"toggle_staff_apply",
+"toggle_creator_apply",
+"toggle_welcome",
+"toggle_rating",
+"send_city_news"
+].includes(interaction.customId)){
+
+if(!interaction.member || !canControl(interaction.member)){
+return interaction.reply({
+content:"❌ ليس لديك صلاحية استخدام لوحة التحكم",
+ephemeral:true
+});
+}
+
+if(interaction.customId==="toggle_server_apply"){
+
+SERVER_APPLICATIONS_OPEN=!SERVER_APPLICATIONS_OPEN;
+
+return interaction.reply({
+content:SERVER_APPLICATIONS_OPEN?"✅ تم فتح تقديم السيرفر":"❌ تم قفل تقديم السيرفر",
+ephemeral:true
+});
+
+}
+
+if(interaction.customId==="toggle_staff_apply"){
+
+STAFF_APPLICATIONS_OPEN=!STAFF_APPLICATIONS_OPEN;
+
+return interaction.reply({
+content:STAFF_APPLICATIONS_OPEN?"✅ تم فتح التقديم الإداري":"❌ تم قفل التقديم الإداري",
+ephemeral:true
+});
+
+}
+
+if(interaction.customId==="toggle_creator_apply"){
+
+CREATOR_APPLICATIONS_OPEN=!CREATOR_APPLICATIONS_OPEN;
+
+return interaction.reply({
+content:CREATOR_APPLICATIONS_OPEN?"✅ تم فتح تقديم صانع المحتوى":"❌ تم قفل تقديم صانع المحتوى",
+ephemeral:true
+});
+
+}
+
+if(interaction.customId==="toggle_welcome"){
+
+WELCOME_SYSTEM_OPEN=!WELCOME_SYSTEM_OPEN;
+
+return interaction.reply({
+content:WELCOME_SYSTEM_OPEN?"✅ تم فتح الترحيب":"❌ تم قفل الترحيب",
+ephemeral:true
+});
+
+}
+
+if(interaction.customId==="toggle_rating"){
+
+RATING_SYSTEM_OPEN=!RATING_SYSTEM_OPEN;
+
+return interaction.reply({
+content:RATING_SYSTEM_OPEN?"✅ تم فتح التقييم":"❌ تم قفل التقييم",
+ephemeral:true
+});
+
+}
+
+if(interaction.customId==="send_city_news"){
+
+const modal=new ModalBuilder()
+.setCustomId("city_news_modal")
+.setTitle("📢 إرسال خبر المدينة");
+
+const title=new TextInputBuilder()
+.setCustomId("title")
+.setLabel("عنوان الخبر")
+.setStyle(TextInputStyle.Short)
+.setRequired(true);
+
+const message=new TextInputBuilder()
+.setCustomId("message")
+.setLabel("محتوى الخبر")
+.setStyle(TextInputStyle.Paragraph)
+.setRequired(true);
+
+modal.addComponents(
+new ActionRowBuilder().addComponents(title),
+new ActionRowBuilder().addComponents(message)
+);
+
+return interaction.showModal(modal);
+
+}
+
+}
+
+//////////////////////////////
+// CITY NEWS ROLE SELECT
+//////////////////////////////
+
+if(interaction.isStringSelectMenu()&&interaction.customId==="select_city_news_role"){
+
+if(!interaction.member || !canControl(interaction.member)){
+return interaction.reply({
+content:"❌ ليس لديك صلاحية تحديد الرول",
+ephemeral:true
+});
+}
+
+CITY_NEWS_ROLE_ID=interaction.values[0];
+
+return interaction.reply({
+content:`✅ تم تحديد رول الأخبار: <@&${CITY_NEWS_ROLE_ID}>`,
+ephemeral:true
+});
+
+}
+
+//////////////////////////////
 // RATING BUTTON
 //////////////////////////////
 
 if(interaction.isButton()&&interaction.customId.startsWith("rate_")){
+
+if(!RATING_SYSTEM_OPEN){
+return interaction.reply({
+content:"❌ التقييم مقفول حالياً",
+ephemeral:true
+});
+}
 
 const ownerId=interaction.customId.split("_")[1];
 
@@ -635,6 +990,13 @@ ephemeral:true
 }
 
 if(interaction.isButton()&&interaction.customId==="rate_server"){
+
+if(!RATING_SYSTEM_OPEN){
+return interaction.reply({
+content:"❌ التقييم مقفول حالياً",
+ephemeral:true
+});
+}
 
 if(ratedUsers.has(interaction.user.id)){
 return interaction.reply({
@@ -718,6 +1080,13 @@ return interaction.showModal(modal);
 
 if(interaction.isButton()&&interaction.customId==="apply_server"){
 
+if(!SERVER_APPLICATIONS_OPEN){
+return interaction.reply({
+content:"❌ تقديم السيرفر مغلق حالياً",
+ephemeral:true
+});
+}
+
 return startApplication(interaction,"server");
 
 }
@@ -728,6 +1097,13 @@ return startApplication(interaction,"server");
 
 if(interaction.isButton()&&interaction.customId==="apply_staff"){
 
+if(!STAFF_APPLICATIONS_OPEN){
+return interaction.reply({
+content:"❌ التقديم الإداري مغلق حالياً",
+ephemeral:true
+});
+}
+
 return startApplication(interaction,"staff");
 
 }
@@ -737,6 +1113,13 @@ return startApplication(interaction,"staff");
 //////////////////////////////
 
 if(interaction.isButton()&&interaction.customId==="apply_creator"){
+
+if(!CREATOR_APPLICATIONS_OPEN){
+return interaction.reply({
+content:"❌ تقديم صانع المحتوى مغلق حالياً",
+ephemeral:true
+});
+}
 
 return startApplication(interaction,"creator");
 
@@ -809,10 +1192,146 @@ return interaction.showModal(modal);
 }
 
 //////////////////////////////
+// VOICE JOIN BUTTON
+//////////////////////////////
+
+if(interaction.isButton()&&interaction.customId.startsWith("voice_join_")){
+
+const userId=interaction.customId.split("_")[2];
+
+if(interaction.user.id!==userId){
+return interaction.reply({
+content:"❌ هذا الزر ليس لك",
+ephemeral:true
+});
+}
+
+const guild=client.guilds.cache.get(CONFIG.GUILD_ID);
+
+if(!guild){
+return interaction.reply({
+content:"❌ لم أجد السيرفر",
+ephemeral:true
+});
+}
+
+const member=await guild.members.fetch(userId).catch(()=>null);
+
+if(!member){
+return interaction.reply({
+content:"❌ لم أجدك داخل السيرفر",
+ephemeral:true
+});
+}
+
+const voice=await guild.channels.fetch(CONFIG.VOICE_CHANNEL_ID).catch(()=>null);
+
+if(!voice){
+return interaction.reply({
+content:"❌ روم المقابلة غير موجود",
+ephemeral:true
+});
+}
+
+if(!member.voice.channel){
+return interaction.reply({
+content:"❌ ادخل أي روم صوتي الأول وبعدها اضغط الزر",
+ephemeral:true
+});
+}
+
+await member.voice.setChannel(voice).catch(()=>null);
+
+return interaction.reply({
+content:"✅ تم نقلك إلى روم المقابلة الصوتية",
+ephemeral:true
+});
+
+}
+
+//////////////////////////////
 // MODALS
 //////////////////////////////
 
 if(interaction.isModalSubmit()){
+
+//////////////////////////////
+// CITY NEWS MODAL
+//////////////////////////////
+
+if(interaction.customId==="city_news_modal"){
+
+if(!CITY_NEWS_ROLE_ID){
+return interaction.reply({
+content:"❌ اختار رول أخبار المدينة الأول",
+ephemeral:true
+});
+}
+
+const role=interaction.guild.roles.cache.get(CITY_NEWS_ROLE_ID);
+
+if(!role){
+return interaction.reply({
+content:"❌ الرول المحدد غير موجود",
+ephemeral:true
+});
+}
+
+const title=interaction.fields.getTextInputValue("title");
+
+const message=interaction.fields.getTextInputValue("message");
+
+await interaction.reply({
+content:"✅ جاري إرسال أخبار المدينة للأعضاء المحددين",
+ephemeral:true
+});
+
+const members=[...role.members.values()];
+
+for(const member of members){
+
+const embed=new EmbedBuilder()
+
+.setColor(CONFIG.COLOR)
+
+.setTitle(`📢 ${title}`)
+
+.setDescription(`
+# 📢 أخبار مدينة ${CONFIG.SERVER_NAME}
+
+━━━━━━━━━━━━━━━━━━
+
+${message}
+
+━━━━━━━━━━━━━━━━━━
+
+👤 تم إرسال الخبر إلى:
+${member}
+
+🕒 وقت الإرسال:
+<t:${Math.floor(Date.now()/1000)}:F>
+
+━━━━━━━━━━━━━━━━━━
+`)
+
+.setThumbnail(CONFIG.LOGO)
+
+.setImage(CONFIG.WELCOME_IMAGE)
+
+.setFooter({
+text:`${CONFIG.SERVER_NAME} • أخبار المدينة`
+});
+
+await member.send({
+content:`${member}`,
+embeds:[embed]
+}).catch(()=>{});
+
+}
+
+return;
+
+}
 
 //////////////////////////////
 // RATING MODAL
@@ -1377,9 +1896,9 @@ components=[
 new ActionRowBuilder().addComponents(
 
 new ButtonBuilder()
+.setCustomId(`voice_join_${userId}`)
 .setLabel("🎤 دخول المقابلة الصوتية")
-.setStyle(ButtonStyle.Link)
-.setURL(CONFIG.VOICE_LINK)
+.setStyle(ButtonStyle.Primary)
 
 )
 ];
