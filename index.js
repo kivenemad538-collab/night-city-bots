@@ -433,17 +433,18 @@ const cityChannel=await client.channels.fetch(CONFIG.CITY_NEWS_CHANNEL_ID).catch
 
 if(cityChannel){
 
-const roles=cityChannel.guild.roles.cache
+const roles=[...cityChannel.guild.roles.cache.values()]
 .filter(r=>r.name!=="@everyone")
 .filter(r=>!r.managed)
-.sort((a,b)=>b.position-a.position)
-.first(25);
+.sort((a,b)=>b.position-a.position);
 
 const menu=new StringSelectMenuBuilder()
 .setCustomId("select_city_news_role")
 .setPlaceholder("🎭 اختار الرولات اللي هيوصلها الأخبار")
 .setMinValues(1)
-.setMaxValues(25);
+.setMaxValues(
+roles.length > 25 ? 25 : roles.length
+);
 
 roles.forEach(role=>{
 menu.addOptions({
