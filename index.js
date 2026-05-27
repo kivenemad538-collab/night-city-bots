@@ -440,10 +440,9 @@ const roles=[...cityChannel.guild.roles.cache.values()]
 
 const menu=new StringSelectMenuBuilder()
 .setCustomId("select_city_news_role")
-.setPlaceholder("🎭 اختار الرولات اللي هيوصلها الأخبار")
+.setPlaceholder("🎭 اختار الرولات اللي هيوصلها الخبر")
 .setMinValues(1)
-.setMaxValues(
-roles.length > 25 ? 25 : roles.length
+.setMaxValues(25);
 );
 
 roles.forEach(role=>{
@@ -916,7 +915,7 @@ ephemeral:true
 });
 }
 
-CITY_NEWS_ROLE_IDS=interaction.values;
+CITY_NEWS_ROLE_ID=interaction.values;
 
 return interaction.reply({
 content:`✅ تم تحديد ${CITY_NEWS_ROLE_IDS.length} رول لأخبار المدينة`,
