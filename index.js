@@ -22,7 +22,8 @@ GatewayIntentBits.GuildMembers,
 GatewayIntentBits.GuildInvites,
 GatewayIntentBits.GuildMessages,
 GatewayIntentBits.MessageContent,
-GatewayIntentBits.DirectMessages
+GatewayIntentBits.DirectMessages,
+GatewayIntentBits.GuildVoiceStates
 ],
 partials:[Partials.Channel]
 });
@@ -162,6 +163,8 @@ const applyCooldown=new Map();
 
 const invitesCache=new Map();
 
+const cityRoleBuckets=new Map();
+
 let SERVER_APPLICATIONS_OPEN=true;
 let STAFF_APPLICATIONS_OPEN=true;
 let CREATOR_APPLICATIONS_OPEN=true;
@@ -180,6 +183,8 @@ return `https://discord.com/channels/${CONFIG.GUILD_ID}/${channelId}`;
 
 function canManage(member,type){
 
+if(!member)return false;
+
 if(type==="server"){
 return member.roles.cache.some(r=>CONFIG.SERVER_ACCEPT_ADMIN_ROLES.includes(r.id));
 }
@@ -197,6 +202,7 @@ return false;
 }
 
 function canControl(member){
+if(!member)return false;
 return member.roles.cache.some(r=>CONFIG.ADMIN_ROLE_IDS.includes(r.id));
 }
 
@@ -329,6 +335,42 @@ return usedInvite.inviter||null;
 
 }
 
+async function panelExists(channel,title){
+
+const messages=await channel.messages.fetch({limit:50}).catch(()=>null);
+
+if(!messages)return false;
+
+return messages.some(m=>
+m.author.id===client.user.id &&
+m.embeds.length &&
+m.embeds[0].title===title
+);
+
+}
+
+async function sendPanelOnce(channel,title,data){
+
+const exists=await panelExists(channel,title);
+
+if(exists)return;
+
+return channel.send(data).catch(()=>null);
+
+}
+
+function chunkArray(arr,size){
+
+const chunks=[];
+
+for(let i=0;i<arr.length;i+=size){
+chunks.push(arr.slice(i,i+size));
+}
+
+return chunks;
+
+}
+
 //////////////////////////////
 // READY
 //////////////////////////////
@@ -368,7 +410,6 @@ const embed=new EmbedBuilder()
 • فتح وقفل تقديم صانع المحتوى
 • فتح وقفل الترحيب
 • فتح وقفل التقييم
-• تحديد رول أخبار المدينة
 • إرسال أخبار المدينة
 
 ━━━━━━━━━━━━━━━━━━
@@ -418,7 +459,7 @@ new ButtonBuilder()
 
 );
 
-await controlChannel.send({
+await sendPanelOnce(controlChannel,"🎛️ لوحة تحكم Nova CFW RP",{
 embeds:[embed],
 components:[row1,row2]
 });
@@ -433,24 +474,46 @@ const cityChannel=await client.channels.fetch(CONFIG.CITY_NEWS_CHANNEL_ID).catch
 
 if(cityChannel){
 
-const roles=[...cityChannel.guild.roles.cache.values()]
+const allRoles=[...cityChannel.guild.roles.cache.values()]
 .filter(r=>r.name!=="@everyone")
 .filter(r=>!r.managed)
 .sort((a,b)=>b.position-a.position);
 
-const menu=new StringSelectMenuBuilder()
-.setCustomId("select_city_news_role")
-.setPlaceholder("🎭 اختار الرولات اللي هيوصلها الخبر")
-.setMinValues(1)
-.setMaxValues(25);
-);
+const chunks=chunkArray(allRoles,25).slice(0,4);
 
-roles.forEach(role=>{
+const components=[];
+
+chunks.forEach((chunk,index)=>{
+
+if(chunk.length===0)return;
+
+const menu=new StringSelectMenuBuilder()
+.setCustomId(`select_city_news_role_${index}`)
+.setPlaceholder(`🎭 اختار الرولات ${index+1}`)
+.setMinValues(1)
+.setMaxValues(chunk.length);
+
+chunk.forEach(role=>{
 menu.addOptions({
-label:role.name,
+label:role.name.slice(0,100),
 value:role.id
 });
 });
+
+components.push(new ActionRowBuilder().addComponents(menu));
+
+});
+
+const sendRow=new ActionRowBuilder().addComponents(
+
+new ButtonBuilder()
+.setCustomId("send_city_news")
+.setLabel("📢 إرسال خبر المدينة")
+.setStyle(ButtonStyle.Danger)
+
+);
+
+components.push(sendRow);
 
 const embed=new EmbedBuilder()
 
@@ -464,11 +527,8 @@ const embed=new EmbedBuilder()
 ━━━━━━━━━━━━━━━━━━
 
 • يمكنك اختيار أكثر من رول
-
-• سيتم إرسال الأخبار
-لكل أعضاء الرولات المحددة
-
-• النظام يدعم جميع رولات السيرفر
+• سيتم إرسال الأخبار لكل أعضاء الرولات المحددة
+• لو الشخص معاه أكتر من رول هتوصله رسالة واحدة فقط
 
 ━━━━━━━━━━━━━━━━━━
 `)
@@ -479,23 +539,13 @@ const embed=new EmbedBuilder()
 
 .setFooter(footer());
 
-const row1=new ActionRowBuilder().addComponents(menu);
-
-const row2=new ActionRowBuilder().addComponents(
-
-new ButtonBuilder()
-.setCustomId("send_city_news")
-.setLabel("📢 إرسال خبر المدينة")
-.setStyle(ButtonStyle.Danger)
-
-);
-
-await cityChannel.send({
+await sendPanelOnce(cityChannel,"📢 نظام أخبار المدينة",{
 embeds:[embed],
-components:[row1,row2]
+components
 });
 
 }
+
 //////////////////////////////
 // SERVER APPLY CHANNEL PANEL
 //////////////////////////////
@@ -544,7 +594,7 @@ new ButtonBuilder()
 
 );
 
-await serverApplyChannel.send({
+await sendPanelOnce(serverApplyChannel,"📨 تقديم الوايت ليست",{
 embeds:[embed],
 components:[row]
 });
@@ -600,7 +650,7 @@ new ButtonBuilder()
 
 );
 
-await staffApplyChannel.send({
+await sendPanelOnce(staffApplyChannel,"🛡️ التقديم الإداري",{
 embeds:[embed],
 components:[row]
 });
@@ -655,7 +705,7 @@ new ButtonBuilder()
 
 );
 
-await creatorApplyChannel.send({
+await sendPanelOnce(creatorApplyChannel,"🎥 تقديم صانع محتوى",{
 embeds:[embed],
 components:[row]
 });
@@ -668,7 +718,7 @@ components:[row]
 
 const channel=await client.channels.fetch(CONFIG.WELCOME_CHANNEL_ID).catch(()=>null);
 
-if(!channel)return;
+if(channel){
 
 const embed=new EmbedBuilder()
 
@@ -696,10 +746,12 @@ const embed=new EmbedBuilder()
 
 .setFooter(footer());
 
-channel.send({
+await sendPanelOnce(channel,`🔥 Welcome To ${CONFIG.SERVER_NAME}`,{
 embeds:[embed],
 components:welcomeButtons()
 });
+
+}
 
 });
 
@@ -711,8 +763,8 @@ client.on(Events.GuildMemberAdd,async member=>{
 
 if(!WELCOME_SYSTEM_OPEN)return;
 
-if(CONFIG.AUTO_ROLE_ID!=="PUT_AUTO_ROLE_ID"){
-member.roles.add(CONFIG.AUTO_ROLE_ID).catch(()=>{});
+if(CONFIG.AUTO_ROLE_ID&&CONFIG.AUTO_ROLE_ID!=="PUT_AUTO_ROLE_ID"){
+await member.roles.add(CONFIG.AUTO_ROLE_ID).catch(()=>{});
 }
 
 const inviter=await findInviter(member);
@@ -776,11 +828,11 @@ ${inviteId}
 
 .setFooter(footer());
 
-channel.send({
+await channel.send({
 content:`${member}`,
 embeds:[embed],
 components:welcomeButtons(member.id)
-});
+}).catch(()=>{});
 
 });
 
@@ -906,7 +958,7 @@ return interaction.showModal(modal);
 // CITY NEWS ROLE SELECT
 //////////////////////////////
 
-if(interaction.isStringSelectMenu()&&interaction.customId==="select_city_news_role"){
+if(interaction.isStringSelectMenu()&&interaction.customId.startsWith("select_city_news_role_")){
 
 if(!interaction.member || !canControl(interaction.member)){
 return interaction.reply({
@@ -915,7 +967,11 @@ ephemeral:true
 });
 }
 
-CITY_NEWS_ROLE_ID=interaction.values;
+const bucketIndex=interaction.customId.split("_").pop();
+
+cityRoleBuckets.set(bucketIndex,interaction.values);
+
+CITY_NEWS_ROLE_IDS=[...new Set([...cityRoleBuckets.values()].flat())];
 
 return interaction.reply({
 content:`✅ تم تحديد ${CITY_NEWS_ROLE_IDS.length} رول لأخبار المدينة`,
@@ -1333,6 +1389,8 @@ content:`${member}`,
 embeds:[embed]
 }).catch(()=>{});
 
+await new Promise(resolve=>setTimeout(resolve,500));
+
 }
 
 return;
@@ -1351,7 +1409,10 @@ const reason=interaction.fields.getTextInputValue("reason");
 
 ratedUsers.add(interaction.user.id);
 
-const review=client.channels.cache.get(CONFIG.RATING_CHANNEL_ID)||client.channels.cache.get(CONFIG.REVIEW_CHANNEL_ID);
+const review=
+await client.channels.fetch(CONFIG.RATING_CHANNEL_ID).catch(()=>null)
+||
+await client.channels.fetch(CONFIG.REVIEW_CHANNEL_ID).catch(()=>null);
 
 const embed=new EmbedBuilder()
 
@@ -1791,7 +1852,7 @@ async function sendReview(interaction,type,questions,answers){
 
 const reviewChannelId=type==="server"?CONFIG.REVIEW_CHANNEL_ID:type==="staff"?CONFIG.STAFF_REVIEW_CHANNEL_ID:CONFIG.CREATOR_REVIEW_CHANNEL_ID;
 
-const review=client.channels.cache.get(reviewChannelId);
+const review=await client.channels.fetch(reviewChannelId).catch(()=>null);
 
 if(!review)return;
 
@@ -1841,11 +1902,11 @@ new ButtonBuilder()
 
 );
 
-review.send({
+await review.send({
 content:`${interaction.user}`,
 embeds:[embed],
 components:[row]
-});
+}).catch(()=>{});
 
 }
 
