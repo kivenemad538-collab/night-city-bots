@@ -168,7 +168,7 @@ let CREATOR_APPLICATIONS_OPEN=true;
 let WELCOME_SYSTEM_OPEN=true;
 let RATING_SYSTEM_OPEN=true;
 
-let CITY_NEWS_ROLE_ID=null;
+let CITY_NEWS_ROLE_IDS=[];
 
 //////////////////////////////
 // HELPERS
@@ -436,11 +436,14 @@ if(cityChannel){
 const roles=cityChannel.guild.roles.cache
 .filter(r=>r.name!=="@everyone")
 .filter(r=>!r.managed)
+.sort((a,b)=>b.position-a.position)
 .first(25);
 
 const menu=new StringSelectMenuBuilder()
 .setCustomId("select_city_news_role")
-.setPlaceholder("🎭 اختار الرول اللي هيجيله أخبار المدينة");
+.setPlaceholder("🎭 اختار الرولات اللي هيوصلها الأخبار")
+.setMinValues(1)
+.setMaxValues(25);
 
 roles.forEach(role=>{
 menu.addOptions({
@@ -456,17 +459,16 @@ const embed=new EmbedBuilder()
 .setTitle("📢 نظام أخبار المدينة")
 
 .setDescription(`
-# 📢 أخبار المدينة
+# 📢 نظام أخبار المدينة
 
 ━━━━━━━━━━━━━━━━━━
 
-اختار الرول من القائمة
+• يمكنك اختيار أكثر من رول
 
-بعدها اضغط زر:
-**📢 إرسال خبر المدينة**
+• سيتم إرسال الأخبار
+لكل أعضاء الرولات المحددة
 
-البوت هيبعت الخبر لكل شخص معاه الرول
-وكل شخص هيجيله منشن لوحده في رسالته.
+• النظام يدعم جميع رولات السيرفر
 
 ━━━━━━━━━━━━━━━━━━
 `)
@@ -494,7 +496,6 @@ components:[row1,row2]
 });
 
 }
-
 //////////////////////////////
 // SERVER APPLY CHANNEL PANEL
 //////////////////////////////
@@ -909,15 +910,15 @@ if(interaction.isStringSelectMenu()&&interaction.customId==="select_city_news_ro
 
 if(!interaction.member || !canControl(interaction.member)){
 return interaction.reply({
-content:"❌ ليس لديك صلاحية تحديد الرول",
+content:"❌ ليس لديك صلاحية تحديد الرولات",
 ephemeral:true
 });
 }
 
-CITY_NEWS_ROLE_ID=interaction.values[0];
+CITY_NEWS_ROLE_IDS=interaction.values;
 
 return interaction.reply({
-content:`✅ تم تحديد رول الأخبار: <@&${CITY_NEWS_ROLE_ID}>`,
+content:`✅ تم تحديد ${CITY_NEWS_ROLE_IDS.length} رول لأخبار المدينة`,
 ephemeral:true
 });
 
@@ -1261,18 +1262,9 @@ if(interaction.isModalSubmit()){
 
 if(interaction.customId==="city_news_modal"){
 
-if(!CITY_NEWS_ROLE_ID){
+if(!CITY_NEWS_ROLE_IDS.length){
 return interaction.reply({
-content:"❌ اختار رول أخبار المدينة الأول",
-ephemeral:true
-});
-}
-
-const role=interaction.guild.roles.cache.get(CITY_NEWS_ROLE_ID);
-
-if(!role){
-return interaction.reply({
-content:"❌ الرول المحدد غير موجود",
+content:"❌ اختار الرولات الأول",
 ephemeral:true
 });
 }
@@ -1282,11 +1274,25 @@ const title=interaction.fields.getTextInputValue("title");
 const message=interaction.fields.getTextInputValue("message");
 
 await interaction.reply({
-content:"✅ جاري إرسال أخبار المدينة للأعضاء المحددين",
+content:"✅ جاري إرسال أخبار المدينة",
 ephemeral:true
 });
 
-const members=[...role.members.values()];
+const membersMap=new Map();
+
+for(const roleId of CITY_NEWS_ROLE_IDS){
+
+const role=interaction.guild.roles.cache.get(roleId);
+
+if(!role)continue;
+
+for(const member of role.members.values()){
+membersMap.set(member.id,member);
+}
+
+}
+
+const members=[...membersMap.values()];
 
 for(const member of members){
 
