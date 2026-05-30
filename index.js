@@ -807,28 +807,13 @@ ${member} انضم إلى السيرفر!
 
 ━━━━━━━━━━━━━━━━━━
 
-🎯 أنت العضو رقم
-**#${member.guild.memberCount}**
+🎯 أنت العضو رقم **#${member.guild.memberCount}** • 👥 عدد الأعضاء **${member.guild.memberCount} عضو**
 
-👥 عدد الأعضاء
-**${member.guild.memberCount} عضو**
+👤 العضو ${member} • 🎮 النوع **FiveM Server**
 
-👤 العضو
-${member}
-\`${member.user.username}\`
+🗓️ عمر الحساب **${formatAccountAge(member.user.createdAt)}** • 📅 الانضمام <t:${joinedTime}:R>
 
-🎮 نوع السيرفر
-**FiveM Server**
-
-🗓️ عمر الحساب
-**${formatAccountAge(member.user.createdAt)}**
-
-📅 تاريخ الانضمام
-<t:${joinedTime}:R>
-
-🎟️ الدعوة بواسطة
-${inviteBy}
-${inviteId}
+🎟️ الدعوة بواسطة ${inviteBy}
 
 ━━━━━━━━━━━━━━━━━━
 
