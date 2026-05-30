@@ -793,33 +793,33 @@ iconURL:member.user.displayAvatarURL({dynamic:true})
 
 ${member} انضم إلى السيرفر!
 
-━━━━━━━━━━━━━━━━━━
-
-🌟 أهلاً بك في مجتمع ${CONFIG.SERVER_NAME}
-
-🎮 نتمنى لك تجربة رول بلاي ممتعة واحترافية
-
-📜 يرجى قراءة القوانين جيداً قبل الدخول أو التقديم
-
-🤝 إذا احتجت أي مساعدة لا تتردد في التواصل مع الإدارة
-
-❤️ نتمنى لك وقتاً ممتعاً داخل السيرفر
+✨ نتمنى لك وقتاً ممتعاً داخل ${CONFIG.SERVER_NAME}
+🎮 سيرفر FiveM متقدم ومميز
+💬 لا تتردد في التواصل معنا
 
 ━━━━━━━━━━━━━━━━━━
 
-🎯 أنت العضو رقم **#${member.guild.memberCount}** • 👥 عدد الأعضاء **${member.guild.memberCount} عضو**
+🎯 أنت العضو رقم **#${member.guild.memberCount}**
+👥 عدد الأعضاء **${member.guild.memberCount} عضو**
 
-👤 العضو ${member} • 🎮 النوع **FiveM Server**
+👤 العضو ${member}
+\`${member.user.username}\`
 
-🗓️ عمر الحساب **${formatAccountAge(member.user.createdAt)}** • 📅 الانضمام <t:${joinedTime}:R>
+🎮 نوع السيرفر **FiveM Server**
 
-🎟️ الدعوة بواسطة ${inviteBy}
+📅 عمر الحساب **${formatAccountAge(member.user.createdAt)}**
+📆 تاريخ الانضمام **<t:${joinedTime}:R>**
+
+🎟️ الدعوة بواسطة **${inviteBy}**
+${inviteId}
 
 ━━━━━━━━━━━━━━━━━━
 
 🔥 استمتع بتجربتك داخل ${CONFIG.SERVER_NAME}
 
-📨 لا تنسَ التقديم على الوايت ليست إذا لم تكمل إجراءات الدخول
+📜 يرجى قراءة القوانين جيداً قبل الدخول أو التقديم
+
+❤️ نتمنى لك تجربة رول بلاي احترافية وممتعة
 
 ━━━━━━━━━━━━━━━━━━
 `)
