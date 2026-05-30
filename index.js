@@ -779,50 +779,113 @@ const inviteBy=inviter?`${inviter}`:"غير معروف";
 
 const inviteId=inviter?`\`${inviter.id}\``:"غير معروف";
 
-const embed=new EmbedBuilder()
+const embed = new EmbedBuilder()
 
 .setColor(CONFIG.COLOR)
-
-.setAuthor({
-name:member.user.username,
-iconURL:member.user.displayAvatarURL({dynamic:true})
-})
 
 .setDescription(`
 
 # 🎉 مرحباً بك في ${CONFIG.SERVER_NAME}!
 
-${member} انضم إلى السيرفر
+انضم ${member} إلى السيرفر
 
-✨ نتمنى لك تجربة رول بلاي ممتعة واحترافية
+✨ نتمنى لك وقتاً ممتعاً في ${CONFIG.SERVER_NAME}
+
+🎮 سيرفر FiveM متقدم ومميز
 
 📜 يرجى قراءة القوانين جيداً قبل البدء
 
-💬 فريق الإدارة جاهز دائماً لمساعدتك
-
-━━━━━━━━━━━━━━━━━━
-
-🎯 العضو رقم **#${member.guild.memberCount}** • 👤 ${member} • 👥 **${member.guild.memberCount} عضو**
-
-🎮 **FiveM Server** • 📅 **${formatAccountAge(member.user.createdAt)}**
-
-📆 **<t:${joinedTime}:R>** • 🎟️ **${inviteBy}**
-
-━━━━━━━━━━━━━━━━━━
-
-🔥 أهلاً بك في مجتمع ${CONFIG.SERVER_NAME}
-
-❤️ نتمنى لك أوقاتاً ممتعة وسيناريوهات مميزة
-
-━━━━━━━━━━━━━━━━━━
+💬 لا تتردد في التواصل مع الإدارة عند الحاجة
 
 `)
 
-.setThumbnail(member.user.displayAvatarURL({dynamic:true}))
+.addFields(
+
+{
+
+name:"🎯 أنت العضو رقم",
+
+value:`#${member.guild.memberCount}`,
+
+inline:true
+
+},
+
+{
+
+name:"👥 عدد الأعضاء",
+
+value:`${member.guild.memberCount} عضو`,
+
+inline:true
+
+},
+
+{
+
+name:"👤 العضو",
+
+value:`${member}\n\`${member.user.username}\``,
+
+inline:true
+
+},
+
+{
+
+name:"🎮 نوع السيرفر",
+
+value:`FiveM Server`,
+
+inline:true
+
+},
+
+{
+
+name:"🗓️ عمر الحساب",
+
+value:`${formatAccountAge(member.user.createdAt)}`,
+
+inline:true
+
+},
+
+{
+
+name:"📅 تاريخ الانضمام",
+
+value:`<t:${joinedTime}:R>`,
+
+inline:true
+
+},
+
+{
+
+name:"🎟️ الدعوة بواسطة",
+
+value:`${inviteBy}\n${inviteId}`,
+
+inline:false
+
+}
+
+)
+
+.setThumbnail(
+
+member.user.displayAvatarURL({dynamic:true})
+
+)
 
 .setImage(CONFIG.WELCOME_IMAGE)
 
-.setFooter(footer());
+.setFooter({
+
+text:`${CONFIG.SERVER_NAME} • Member #${member.guild.memberCount}`
+
+})
 
 await channel.send({
 content:`${member}`,
