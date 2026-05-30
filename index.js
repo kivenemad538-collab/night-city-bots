@@ -789,37 +789,37 @@ iconURL:member.user.displayAvatarURL({dynamic:true})
 })
 
 .setDescription(`
+
 # 🎉 مرحباً بك في ${CONFIG.SERVER_NAME}!
 
-${member} انضم إلى السيرفر!
+${member} انضم إلى السيرفر
 
-✨ نتمنى لك وقتاً ممتعاً داخل ${CONFIG.SERVER_NAME}
-🎮 سيرفر FiveM متقدم ومميز
-💬 لا تتردد في التواصل معنا
+✨ نتمنى لك تجربة رول بلاي ممتعة واحترافية
+
+📜 يرجى قراءة القوانين جيداً قبل البدء
+
+💬 فريق الإدارة جاهز دائماً لمساعدتك
 
 ━━━━━━━━━━━━━━━━━━
-🎯 أنت العضو رقم **#${member.guild.memberCount}**
-👥 عدد الأعضاء **${member.guild.memberCount} عضو**
 
-👤 العضو ${member}
-\`${member.user.username}\`
+🎯 العضو رقم **#${member.guild.memberCount}** • 👤 ${member} • 👥 **${member.guild.memberCount} عضو**
 
-🎮 نوع السيرفر **FiveM Server**
+🎮 **FiveM Server** • 📅 **${formatAccountAge(member.user.createdAt)}**
 
-📅 عمر الحساب **${formatAccountAge(member.user.createdAt)}**
-📆 تاريخ الانضمام **<t:${joinedTime}:R>**
+📆 **<t:${joinedTime}:R>** • 🎟️ **${inviteBy}**
 
-🎟️ الدعوة بواسطة **${inviteBy}**
-${inviteId}
 ━━━━━━━━━━━━━━━━━━
-🔥 استمتع بتجربتك داخل ${CONFIG.SERVER_NAME}
 
-📜 يرجى قراءة القوانين جيداً قبل الدخول أو التقديم
+🔥 أهلاً بك في مجتمع ${CONFIG.SERVER_NAME}
 
-❤️ نتمنى لك تجربة رول بلاي احترافية وممتعة
+❤️ نتمنى لك أوقاتاً ممتعة وسيناريوهات مميزة
+
 ━━━━━━━━━━━━━━━━━━
+
 `)
+
 .setThumbnail(member.user.displayAvatarURL({dynamic:true}))
+
 .setImage(CONFIG.WELCOME_IMAGE)
 
 .setFooter(footer());
