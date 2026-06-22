@@ -36,7 +36,7 @@ const CONFIG={
 
 TOKEN:process.env.TOKEN,
 
-SERVER_NAME:"Nova CFW RP",
+SERVER_NAME:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏",
 
 COLOR:"#ff0000",
 
