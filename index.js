@@ -381,7 +381,7 @@ const embed=new EmbedBuilder()
 
 .setColor(CONFIG.COLOR)
 
-.setTitle("🎛️ لوحة تحكم Nova CFW RP")
+.setTitle("🎛️ لوحة تحكم 𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏")
 
 .setDescription(`
 # 🎛️ لوحة التحكم
@@ -1615,7 +1615,7 @@ const intro=new EmbedBuilder()
 .setColor("#ff0000")
 
 .setAuthor({
-name:"Nova CFW Application System",
+name:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 Application System",
 iconURL:CONFIG.LOGO
 })
 
@@ -1678,7 +1678,7 @@ new EmbedBuilder()
 .setColor("#ff0000")
 
 .setAuthor({
-name:"Nova CFW Application System",
+name:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 Application System",
 iconURL:CONFIG.LOGO
 })
 
@@ -1735,7 +1735,7 @@ new EmbedBuilder()
 .setColor("#ff0000")
 
 .setAuthor({
-name:"Nova CFW Application System",
+name:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 Application System",
 iconURL:CONFIG.LOGO
 })
 
@@ -1770,7 +1770,7 @@ new EmbedBuilder()
 .setColor("#ff0000")
 
 .setAuthor({
-name:"Nova CFW Application System",
+name:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 Application System",
 iconURL:CONFIG.LOGO
 })
 
@@ -1811,7 +1811,7 @@ new EmbedBuilder()
 .setColor("#00ff88")
 
 .setAuthor({
-name:"Nova CFW Application System",
+name:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 Application System",
 iconURL:CONFIG.LOGO
 })
 
@@ -1988,7 +1988,7 @@ acceptText=`
 # ✅ تهانينا!
 
 تم قبولك مبدئياً في
-**Nova CFW RP**
+**N𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏**
 
 أصبحت الآن مؤهلاً للدخول
 إلى المقابلة الصوتية
@@ -2027,7 +2027,7 @@ acceptText=`
 # 🎉 مبروك!
 
 تم قبولك ضمن فريق إدارة
-**Nova CFW RP**
+**N𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏**
 
 تم منحك الرتبة بنجاح
 
@@ -2051,7 +2051,7 @@ acceptText=`
 # 🎉 مبروك!
 
 تم قبولك في برنامج صناع المحتوى داخل
-**Nova CFW RP**
+**𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏**
 
 يمكنك الآن نشر محتوى السيرفر
 والمساهمة في نمو المجتمع
@@ -2084,7 +2084,7 @@ ${acceptText}
 .setImage(CONFIG.WELCOME_IMAGE)
 
 .setFooter({
-text:`Nova CFW RP • الإدارة`
+text:`𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏 • الإدارة`
 });
 
 user.send({
@@ -2188,7 +2188,7 @@ ${reason}
 .setImage(CONFIG.WELCOME_IMAGE)
 
 .setFooter({
-text:`Nova CFW RP • الإدارة`
+text:`𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏 • الإدارة`
 });
 
 user.send({
