@@ -38,7 +38,7 @@ TOKEN:process.env.TOKEN,
 
 SERVER_NAME:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏",
 
-COLOR:"#ff0000",
+COLOR:"#0080ff",
 
 LOGO:"https://cdn.discordapp.com/attachments/1522093056495718481/1528181158041485432/2EB4F7FD-76E4-40F2-B6E9-1AA45B4411AF.png?ex=6a5d5d1c&is=6a5c0b9c&hm=7bb3f7cd195852e8d50553cdc0c4ae1ec45447559cf5f4cadc1f9ef6e597241e&",
 
