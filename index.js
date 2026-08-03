@@ -38,11 +38,11 @@ TOKEN:process.env.TOKEN,
 
 SERVER_NAME:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏",
 
-COLOR:"#0080ff",
+COLOR: "#ff0000",
 
-LOGO:"https://cdn.discordapp.com/attachments/1504598344570376294/1529552559449309254/412BE64F-AD91-434A-B459-82472267B8F0.png?ex=6a625a53&is=6a6108d3&hm=b3d8b55d26093da232b28fb771194a496a476e90fde6c369a600b81c547222aa&",
+LOGO:"https://cdn.discordapp.com/attachments/1523767129629917315/1533683600271085658/2FD4B768-9307-4C8C-B3CC-A19F3B7B155C.png?ex=6a7161a8&is=6a701028&hm=32bb99863b1ca28d44d026d0833966784ef93d387ce67fb89b1755b9ce73c3ca&",
 
-WELCOME_IMAGE:"https://cdn.discordapp.com/attachments/1522087146872111154/1529524451782430781/CC5D3CB5-E47D-42B4-938E-89C5E0D54F89.png?ex=6a624026&is=6a60eea6&hm=a26566f035930a65c43d57ff7bfe69cba138b51e8316e98ab3cded7a55d27b47&",
+WELCOME_IMAGE:"https://cdn.discordapp.com/attachments/1523767129629917315/1533683600783052820/E402D2B3-DE98-4B03-8B5B-581EF0A3CEEB.png?ex=6a7161a8&is=6a701028&hm=a05fdbbc604ad307ef9948711dc3470aa084d8664a2c3088470b2fad8d7f5c51&",
 
 RULES_IMAGE:"https://cdn.discordapp.com/attachments/1522087146872111154/1529524451782430781/CC5D3CB5-E47D-42B4-938E-89C5E0D54F89.png?ex=6a624026&is=6a60eea6&hm=a26566f035930a65c43d57ff7bfe69cba138b51e8316e98ab3cded7a55d27b47&",
 
@@ -763,10 +763,9 @@ const embed = new EmbedBuilder()
 ✨ نتمنى لك وقتاً ممتعاً في ${CONFIG.SERVER_NAME}
 
 🎮 سيرفر FiveM متقدم ومميز
-
 📜 يرجى قراءة القوانين جيداً قبل البدء
-
 💬 لا تتردد في التواصل مع الإدارة عند الحاجة
+🌐 نحن هنا لمساعدتك 
 
 `)
 
@@ -1556,7 +1555,7 @@ iconURL:CONFIG.LOGO
 .setImage(CONFIG.WELCOME_IMAGE)
 
 .setFooter({
-text:"Nova CFW RP • نظام التقديم"
+text:"Turbo CFW RP • نظام التقديم"
 });
 
 await dm.send({
@@ -1758,6 +1757,7 @@ if(type==="server")return [
 "كم عمرك ؟",
 "ما اسم شخصيتك داخل الرول بلاي ؟",
 "هل لديك خبرة رول بلاي ؟",
+"قصة الشخصية يجب ان تكون فوق 150 كلمة فما فوق",
 "ما معنى Fail RP ؟",
 "ما معنى Meta Gaming ؟",
 "ما معنى Power Gaming ؟",
