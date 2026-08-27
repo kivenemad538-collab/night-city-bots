@@ -188,6 +188,10 @@ function canManage(member,type){
 
 if(!member)return false;
 
+if(member.permissions?.has("Administrator"))return true;
+
+if(member.roles.cache.some(r=>CONFIG.ADMIN_ROLE_IDS.includes(r.id)))return true;
+
 if(type==="server"){
 return member.roles.cache.some(r=>CONFIG.SERVER_ACCEPT_ADMIN_ROLES.includes(r.id));
 }
@@ -277,6 +281,20 @@ new SlashCommandBuilder()
 
 const rest=new REST({version:"10"}).setToken(CONFIG.TOKEN);
 await rest.put(Routes.applicationGuildCommands(client.user.id,CONFIG.GUILD_ID),{body:commands});
+}
+
+function launchApplication(interaction,type){
+// كل تقديم يعمل كجلسة مستقلة؛ لذلك يمكن لعدة أشخاص التقديم في نفس الوقت.
+void startApplication(interaction,type).catch(async error=>{
+console.error(`Application session error (${type}/${interaction.user.id}):`,error);
+
+const payload={content:"❌ حصل خطأ داخل جلسة التقديم. حاول فتح التقديم مرة أخرى.",ephemeral:true};
+if(interaction.deferred || interaction.replied){
+await interaction.followUp(payload).catch(()=>{});
+}else{
+await interaction.reply(payload).catch(()=>{});
+}
+});
 }
 
 function welcomeButtons(userId=null){
@@ -995,8 +1013,28 @@ if(!message.guild || message.author.bot)return;
 
 if(await handleVoiceReviewMessage(message))return;
 
+if(message.content.trim().toLowerCase()!=="ip")return;
+
+const ipEmbed=new EmbedBuilder()
+.setColor(CONFIG.COLOR)
+.setAuthor({name:CONFIG.SERVER_NAME,iconURL:CONFIG.LOGO})
+.setTitle("🌐 معلومات دخول السيرفر")
+.setDescription(`
+**📡 حالة السيرفر**
+\`${CONFIG.MAINTENANCE_STATUS}\`
+
+**🔗 عنوان الدخول (IP)**
+\`${CONFIG.SERVER_IP}\`
+
+> عند فتح السيرفر سيتم تحديث عنوان الدخول هنا.
+`)
+.setThumbnail(CONFIG.LOGO)
+.setImage(CONFIG.WELCOME_IMAGE)
+.setFooter(footer())
+.setTimestamp();
+
 await message.reply({
-content:`🔧 **الحالة:** ${CONFIG.MAINTENANCE_STATUS}\n🌐 **IP:** ${CONFIG.SERVER_IP}`,
+embeds:[ipEmbed],
 allowedMentions:{repliedUser:false}
 }).catch(()=>{});
 });
@@ -1006,6 +1044,8 @@ allowedMentions:{repliedUser:false}
 //////////////////////////////
 
 client.on(Events.InteractionCreate,async interaction=>{
+
+try{
 
 if(interaction.isChatInputCommand()&&interaction.commandName==="vot"){
 const options=[
@@ -1179,7 +1219,7 @@ ephemeral:true
 // RATING BUTTON
 //////////////////////////////
 
-if(interaction.isButton()&&interaction.customId.startsWith("rate_")){
+if(interaction.isButton()&&interaction.customId.startsWith("rate_")&&interaction.customId!=="rate_server"){
 
 if(!RATING_SYSTEM_OPEN){
 return interaction.reply({
@@ -1339,7 +1379,8 @@ ephemeral:true
 });
 }
 
-return startApplication(interaction,"server");
+launchApplication(interaction,"server");
+return;
 
 }
 
@@ -1356,7 +1397,8 @@ ephemeral:true
 });
 }
 
-return startApplication(interaction,"staff");
+launchApplication(interaction,"staff");
+return;
 
 }
 
@@ -1369,7 +1411,8 @@ if(!MONITORING_APPLICATIONS_OPEN){
 return interaction.reply({content:"❌ تقديم الرقابة مغلق حالياً",ephemeral:true});
 }
 
-return startApplication(interaction,"monitoring");
+launchApplication(interaction,"monitoring");
+return;
 }
 
 //////////////////////////////
@@ -1385,7 +1428,8 @@ ephemeral:true
 });
 }
 
-return startApplication(interaction,"creator");
+launchApplication(interaction,"creator");
+return;
 
 }
 
@@ -1408,6 +1452,7 @@ ephemeral:true
 });
 }
 
+await interaction.deferUpdate();
 return acceptApplication(interaction,type,userId);
 
 }
@@ -1470,45 +1515,42 @@ ephemeral:true
 });
 }
 
+await interaction.deferReply({ephemeral:true});
+
 const guild=client.guilds.cache.get(CONFIG.GUILD_ID);
 
 if(!guild){
-return interaction.reply({
+return interaction.editReply({
 content:"❌ لم أجد السيرفر",
-ephemeral:true
 });
 }
 
 const member=await guild.members.fetch(userId).catch(()=>null);
 
 if(!member){
-return interaction.reply({
+return interaction.editReply({
 content:"❌ لم أجدك داخل السيرفر",
-ephemeral:true
 });
 }
 
 const voice=await guild.channels.fetch(CONFIG.VOICE_CHANNEL_ID).catch(()=>null);
 
 if(!voice){
-return interaction.reply({
+return interaction.editReply({
 content:"❌ روم المقابلة غير موجود",
-ephemeral:true
 });
 }
 
 if(!member.voice.channel){
-return interaction.reply({
+return interaction.editReply({
 content:"❌ ادخل أي روم صوتي الأول وبعدها اضغط الزر",
-ephemeral:true
 });
 }
 
 await member.voice.setChannel(voice).catch(()=>null);
 
-return interaction.reply({
+return interaction.editReply({
 content:"✅ تم نقلك إلى روم المقابلة الصوتية",
-ephemeral:true
 });
 
 }
@@ -1616,6 +1658,8 @@ const reason=interaction.fields.getTextInputValue("reason");
 
 ratedUsers.add(interaction.user.id);
 
+await interaction.deferReply({ephemeral:true});
+
 const review=
 await client.channels.fetch(CONFIG.RATING_CHANNEL_ID).catch(()=>null)
 ||
@@ -1650,9 +1694,8 @@ review?.send({
 embeds:[embed]
 });
 
-interaction.reply({
+await interaction.editReply({
 content:"✅ شكراً لتقييمك",
-ephemeral:true
 });
 
 interaction.user.send({
@@ -1692,10 +1735,23 @@ const userId=parts[2];
 
 const reason=interaction.fields.getTextInputValue("reason");
 
+await interaction.deferUpdate();
 return rejectApplication(interaction,type,userId,reason);
 
 }
 
+}
+
+}catch(error){
+console.error("Interaction error:",error);
+
+const errorMessage={content:"❌ حصل خطأ أثناء تنفيذ الطلب. حاول مرة أخرى، ولو استمرت المشكلة راجع صلاحيات البوت وترتيب الرولات.",ephemeral:true};
+
+if(interaction.deferred || interaction.replied){
+await interaction.followUp(errorMessage).catch(()=>{});
+}else{
+await interaction.reply(errorMessage).catch(()=>{});
+}
 }
 
 });
@@ -2150,7 +2206,7 @@ const member=await interaction.guild.members.fetch(userId).catch(()=>null);
 const user=await client.users.fetch(userId).catch(()=>null);
 
 if(!user){
-return interaction.reply({
+return interaction.followUp({
 content:"❌ لم أجد الشخص",
 ephemeral:true
 });
@@ -2263,8 +2319,12 @@ creatorApplied.delete(userId);
 
 }
 
+let roleAdded=false;
 if(member&&roleId&&!roleId.startsWith("PUT_")){
-member.roles.add(roleId).catch(()=>{});
+roleAdded=await member.roles.add(roleId).then(()=>true).catch(error=>{
+console.error(`تعذر إضافة رول القبول ${roleId} إلى ${userId}:`,error.message);
+return false;
+});
 }
 
 const acceptEmbed=new EmbedBuilder()
@@ -2287,10 +2347,10 @@ ${acceptText}
 text:`𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏 • الإدارة`
 });
 
-user.send({
+const dmSent=await user.send({
 embeds:[acceptEmbed],
 components
-}).catch(()=>{});
+}).then(()=>true).catch(()=>false);
 
 const disabled=new ActionRowBuilder().addComponents(
 
@@ -2302,9 +2362,19 @@ new ButtonBuilder()
 
 );
 
-interaction.update({
+await interaction.editReply({
 components:[disabled]
 });
+
+if(!member || !roleAdded || !dmSent){
+const warnings=[
+!member?"لم أجد العضو داخل السيرفر":null,
+member&&!roleAdded?"لم أستطع إضافة رول القبول؛ تأكد أن رتبة البوت أعلى من الرول وأن لديه Manage Roles":null,
+!dmSent?"الخاص عند المتقدم مغلق":null
+].filter(Boolean).join(" — ");
+
+await interaction.followUp({content:`⚠️ تم تسجيل القبول، لكن: ${warnings}`,ephemeral:true}).catch(()=>{});
+}
 
 }
 
@@ -2319,7 +2389,7 @@ const user=await client.users.fetch(userId).catch(()=>null);
 const member=await interaction.guild.members.fetch(userId).catch(()=>null);
 
 if(!user){
-return interaction.reply({
+return interaction.followUp({
 content:"❌ لم أجد الشخص",
 ephemeral:true
 });
@@ -2409,7 +2479,7 @@ new ButtonBuilder()
 
 );
 
-interaction.update({
+await interaction.editReply({
 components:[disabled]
 });
 
