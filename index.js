@@ -167,6 +167,9 @@ const invitesCache=new Map();
 
 const cityRoleBuckets=new Map();
 
+// يحتفظ بأول تقديم لكل شخص في كل قسم لكي تكون الإعادات Reply عليه.
+const firstReviewMessageIds=new Map();
+
 let SERVER_APPLICATIONS_OPEN=true;
 let STAFF_APPLICATIONS_OPEN=true;
 let CREATOR_APPLICATIONS_OPEN=true;
@@ -1848,21 +1851,11 @@ iconURL:CONFIG.LOGO
 })
 
 .setDescription(`
-# ${title}
+**${title}**
 
-━━━━━━━━━━━━━━━━━━
-
-> أهلاً بك في نظام التقديم الرسمي
-
-📌 سيتم سؤالك عدة أسئلة  
-يرجى الإجابة بجدية
-
-❌ إذا أردت إلغاء التقديم في أي وقت  
-قم بكتابة:
-
-\`cancel\`
-
-━━━━━━━━━━━━━━━━━━
+أهلاً بك في نظام التقديم الرسمي.
+📌 أجب عن الأسئلة بجدية.
+❌ للإلغاء في أي وقت اكتب: \`cancel\`
 `)
 
 .setThumbnail(CONFIG.LOGO)
@@ -1911,15 +1904,8 @@ iconURL:CONFIG.LOGO
 })
 
 .setDescription(`
-# ❌ تم إلغاء التقديم
-
-━━━━━━━━━━━━━━━━━━
-
-تم إيقاف التقديم بنجاح
-
-يمكنك إعادة التقديم لاحقاً
-
-━━━━━━━━━━━━━━━━━━
+**❌ تم إلغاء التقديم**
+تم إيقاف التقديم، ويمكنك إعادة التقديم لاحقاً.
 `)
 ]
 });
@@ -1937,8 +1923,7 @@ const q=questions[i];
 const questionEmbed=new EmbedBuilder()
 .setColor(CONFIG.COLOR)
 .setDescription(`
-# السؤال رقم ${i+1}
-
+**السؤال ${i+1} من ${questions.length}**
 ${q}
 `);
 
@@ -1968,15 +1953,8 @@ iconURL:CONFIG.LOGO
 })
 
 .setDescription(`
-# ❌ انتهى وقت التقديم
-
-━━━━━━━━━━━━━━━━━━
-
-لم يتم استلام أي رد منك
-
-يمكنك إعادة التقديم لاحقاً
-
-━━━━━━━━━━━━━━━━━━
+**❌ انتهى وقت التقديم**
+لم يصل ردك في الوقت المحدد. يمكنك إعادة التقديم لاحقاً.
 `)
 ]
 });
@@ -2003,15 +1981,8 @@ iconURL:CONFIG.LOGO
 })
 
 .setDescription(`
-# ❌ تم إلغاء التقديم
-
-━━━━━━━━━━━━━━━━━━
-
-تم إيقاف التقديم بنجاح
-
-يمكنك إعادة التقديم لاحقاً
-
-━━━━━━━━━━━━━━━━━━
+**❌ تم إلغاء التقديم**
+تم إيقاف التقديم، ويمكنك إعادة التقديم لاحقاً.
 `)
 
 .setThumbnail(CONFIG.LOGO)
@@ -2044,16 +2015,8 @@ iconURL:CONFIG.LOGO
 })
 
 .setDescription(`
-# ✅ تم استلام تقديمك
-
-━━━━━━━━━━━━━━━━━━
-
-تم إرسال تقديمك للإدارة
-وسيتم مراجعته قريباً
-
-نتمنى لك التوفيق ❤️
-
-━━━━━━━━━━━━━━━━━━
+**✅ تم استلام تقديمك**
+تم إرساله للإدارة للمراجعة، وسيتم إبلاغك بالنتيجة قريباً. ❤️
 `)
 
 .setThumbnail(CONFIG.LOGO)
@@ -2143,6 +2106,30 @@ if(!review)return;
 
 const title=type==="server"?"📨 تقديم سيرفر جديد":type==="staff"?"🛡️ تقديم إداري جديد":type==="monitoring"?"🛡️ تقديم رقابة جديد":"🎥 تقديم صانع محتوى جديد";
 
+const reviewKey=`${type}:${interaction.user.id}`;
+let firstMessageId=firstReviewMessageIds.get(reviewKey)||null;
+
+if(!firstMessageId){
+const oldMessages=await review.messages.fetch({limit:100}).catch(()=>null);
+
+if(oldMessages){
+const firstOldMessage=[...oldMessages.values()]
+.reverse()
+.find(message=>
+message.author.id===client.user.id &&
+message.embeds.some(oldEmbed=>
+oldEmbed.title===title &&
+oldEmbed.description?.includes(interaction.user.id)
+)
+);
+
+if(firstOldMessage){
+firstMessageId=firstOldMessage.id;
+firstReviewMessageIds.set(reviewKey,firstMessageId);
+}
+}
+}
+
 const embed=new EmbedBuilder()
 
 .setColor(CONFIG.COLOR)
@@ -2152,14 +2139,8 @@ const embed=new EmbedBuilder()
 .setThumbnail(interaction.user.displayAvatarURL())
 
 .setDescription(`
-# معلومات المتقدم
-
-👤 الشخص: ${interaction.user}
-
-🆔 ID:
-\`${interaction.user.id}\`
-
-━━━━━━━━━━━━━━━━━━
+👤 **المتقدم:** ${interaction.user}
+🆔 **ID:** \`${interaction.user.id}\`
 `)
 
 .setImage(CONFIG.WELCOME_IMAGE);
@@ -2187,11 +2168,18 @@ new ButtonBuilder()
 
 );
 
-await review.send({
+const sentReview=await review.send({
 content:`${interaction.user}`,
 embeds:[embed],
-components:[row]
-}).catch(()=>{});
+components:[row],
+...(firstMessageId?{
+reply:{messageReference:firstMessageId,failIfNotExists:false}
+}:{})
+}).catch(()=>null);
+
+if(sentReview&&!firstMessageId){
+firstReviewMessageIds.set(reviewKey,sentReview.id);
+}
 
 }
 
@@ -2227,20 +2215,8 @@ roleId=CONFIG.SERVER_ACCEPT_ROLE_ID;
 acceptTitle="🎉 تم قبول طلبك في السيرفر!";
 
 acceptText=`
-# ✅ تهانينا!
-
-تم قبولك في
-**𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏**
-
-أصبحت الآن مؤهلاً للدخول
-إلى سيرفر
-يرجى الالتزام بالقوانين
-واحترام جميع اللاعبين
-
-━━━━━━━━━━━━━━━━━━
-
-📌 اضغط الزر بالأسفل
-للدخول إلى المقابلة الصوتية
+تم قبولك في **𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏**.
+📌 اضغط الزر بالأسفل لدخول المقابلة الصوتية.
 `;
 
 components=[
@@ -2265,17 +2241,8 @@ roleId=CONFIG.STAFF_ACCEPT_ROLE_ID;
 acceptTitle="🛡️ تم قبولك في الإدارة!";
 
 acceptText=`
-# 🎉 مبروك!
-
-تم قبولك ضمن فريق إدارة
-**𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏**
-
-تم منحك الرتبة بنجاح
-
-يرجى الالتزام بالقوانين
-والتعامل باحترام مع جميع اللاعبين
-
-يمنع إساءة استخدام الصلاحيات
+تم قبولك ضمن فريق إدارة **𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏** ومنحك الرتبة.
+يرجى الالتزام بالقوانين وعدم إساءة استخدام الصلاحيات.
 `;
 
 staffApplied.delete(userId);
@@ -2286,12 +2253,7 @@ if(type==="monitoring"){
 roleId=CONFIG.MONITORING_ACCEPT_ROLE_ID;
 acceptTitle="🛡️ تم قبولك في فريق الرقابة!";
 acceptText=`
-# 🎉 مبروك!
-
-تم قبولك ضمن فريق الرقابة في
-**𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏**
-
-تم منحك الرتبة بنجاح.
+تم قبولك ضمن فريق الرقابة في **𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏** ومنحك الرتبة.
 يرجى الالتزام بالقوانين والحياد واحترام جميع اللاعبين.
 `;
 monitoringApplied.delete(userId);
@@ -2304,15 +2266,8 @@ roleId=CONFIG.CREATOR_ACCEPT_ROLE_ID;
 acceptTitle="🎥 تم قبولك كصانع محتوى!";
 
 acceptText=`
-# 🎉 مبروك!
-
-تم قبولك في برنامج صناع المحتوى داخل
-**𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏**
-
-يمكنك الآن نشر محتوى السيرفر
-والمساهمة في نمو المجتمع
-
-يرجى الالتزام بقوانين النشر
+تم قبولك كصانع محتوى في **𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏**.
+يمكنك نشر محتوى السيرفر مع الالتزام بقوانين النشر.
 `;
 
 creatorApplied.delete(userId);
@@ -2332,13 +2287,8 @@ const acceptEmbed=new EmbedBuilder()
 .setColor("#00ff88")
 
 .setDescription(`
-# ${acceptTitle}
-
-━━━━━━━━━━━━━━━━━━
-
-${acceptText}
-
-━━━━━━━━━━━━━━━━━━
+**${acceptTitle}**
+${acceptText.trim()}
 `)
 
 .setImage(CONFIG.WELCOME_IMAGE)
@@ -2442,21 +2392,11 @@ const rejectEmbed=new EmbedBuilder()
 .setColor(CONFIG.COLOR)
 
 .setDescription(`
-# ${rejectTitle}
+**${rejectTitle}**
 
-━━━━━━━━━━━━━━━━━━
+📝 **السبب:** ${reason}
 
-للأسف تم رفض طلبك الحالي
-
-📝 السبب:
-${reason}
-
-يمكنك إعادة التقديم لاحقاً
-بعد تطوير مستواك
-
-نتمنى لك التوفيق ❤️
-
-━━━━━━━━━━━━━━━━━━
+يمكنك إعادة التقديم لاحقاً. نتمنى لك التوفيق ❤️
 `)
 
 .setImage(CONFIG.WELCOME_IMAGE)
