@@ -38,7 +38,7 @@ partials:[Partials.Channel]
 
 const CONFIG={
 
-TOKEN:process.env.TOKEN,
+TOKEN:process.env.TOKEN||process.env.DISCORD_TOKEN||process.env.BOT_TOKEN,
 
 SERVER_NAME:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏",
 
@@ -282,7 +282,13 @@ new SlashCommandBuilder()
 .addStringOption(option=>option.setName("الاختيار_الثالث").setDescription("اختياري").setRequired(false))
 ].map(command=>command.toJSON());
 
-const rest=new REST({version:"10"}).setToken(CONFIG.TOKEN);
+const commandToken=client.token||CONFIG.TOKEN;
+
+if(!commandToken){
+throw new Error("Discord token is unavailable for slash-command registration");
+}
+
+const rest=new REST({version:"10"}).setToken(commandToken);
 await rest.put(Routes.applicationGuildCommands(client.user.id,CONFIG.GUILD_ID),{body:commands});
 }
 
