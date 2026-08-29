@@ -980,7 +980,20 @@ return true;
 }
 
 if(message.channel.id===CONFIG.VOICE_ACCEPT_CHANNEL_ID){
-await member.roles.remove(CONFIG.VOICE_PENDING_ROLE_ID).catch(()=>null);
+const rolesToRemove=[
+CONFIG.VOICE_PENDING_ROLE_ID,
+"1522093054377328731",
+"1522093054377328732",
+"1522093054377328733"
+].filter(roleId=>member.roles.cache.has(roleId));
+
+const oldRolesRemoved=rolesToRemove.length===0
+?true
+:await member.roles.remove(rolesToRemove).then(()=>true).catch(error=>{
+console.error(`تعذر حذف رولات ما قبل القبول من ${userId}:`,error.message);
+return false;
+});
+
 const entryRoleAdded=await member.roles.add(CONFIG.ENTRY_PERMIT_ROLE_ID).then(()=>true).catch(()=>false);
 
 const embed=new EmbedBuilder()
@@ -991,7 +1004,7 @@ const embed=new EmbedBuilder()
 .setFooter(footer());
 
 const dmSent=await user.send({embeds:[embed]}).then(()=>true).catch(()=>false);
-const warnings=[!entryRoleAdded?"⚠️ لم أستطع إضافة رول تصريح الدخول.":null,!dmSent?"⚠️ الخاص عند الشخص مغلق.":null].filter(Boolean).join("\n");
+const warnings=[!oldRolesRemoved?"⚠️ لم أستطع إزالة بعض الرولات القديمة.":null,!entryRoleAdded?"⚠️ لم أستطع إضافة رول تصريح الدخول.":null,!dmSent?"⚠️ الخاص عند الشخص مغلق.":null].filter(Boolean).join("\n");
 await message.reply({content:`✅ تم قبول <@${userId}>.${warnings?`\n${warnings}`:" تم منحه تصريح الدخول وإبلاغه في الخاص."}`,allowedMentions:{repliedUser:false}}).catch(()=>{});
 await sendVoiceReviewResult(message,"✅ تم قبول التقديم الصوتي",userId,"🎫 النتيجة: تصريح دخول","#00ff88");
 return true;
