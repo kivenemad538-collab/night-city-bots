@@ -44,16 +44,16 @@ SERVER_NAME:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏",
 
 COLOR: "#008CFF",
 
-LOGO:"https://cdn.discordapp.com/attachments/1523767129629917315/1539125266629005383/94B486E8-6531-4AF9-AA80-0076DAD60FE5.png?ex=6a91b3db&is=6a90625b&hm=39a0aaa91f07f952b0fb90d601babddfad7aa1b8b0a412c08a4c4c29b051cb60&",
+LOGO:"https://cdn.discordapp.com/attachments/1522093056495718481/1548715410474405998/551r5xt.png?ex=6aa8111f&is=6aa6bf9f&hm=4d462c1bd2b07d4b0d8d5f6e867132fa8283aaf4b8d0a2c4476c6e9b53c1907c&",
 
-WELCOME_IMAGE:"https://cdn.discordapp.com/attachments/1523767129629917315/1542574633767669780/ChatGPT_Image_Aug_27_2026_07_39_46_PM.png?ex=6a91ba14&is=6a906894&hm=7b994e75406dda0484c71c9545b4785fff1f8bedc5624283f5f07b68e2d938d2&",
+WELCOME_IMAGE:"https://cdn.discordapp.com/attachments/1522093056495718481/1548715281868656680/w5wmthh.png?ex=6aa81100&is=6aa6bf80&hm=75cd7f203cdfa3df37343cf4095d7f865778ced356c3ed30b104ae23c212ae6d&",
 
 // غيّر كلمة "قريباً" إلى عنوان السيرفر عندما يصبح جاهزاً، مثال: "connect 1.2.3.4:30120"
 SERVER_IP:"قريباً",
 
 MAINTENANCE_STATUS:"صيانة",
 
-RULES_IMAGE:"https://cdn.discordapp.com/attachments/1522087146872111154/1529524451782430781/CC5D3CB5-E47D-42B4-938E-89C5E0D54F89.png?ex=6a624026&is=6a60eea6&hm=a26566f035930a65c43d57ff7bfe69cba138b51e8316e98ab3cded7a55d27b47&",
+RULES_IMAGE:"https://cdn.discordapp.com/attachments/1522093056495718481/1548715281868656680/w5wmthh.png?ex=6aa81100&is=6aa6bf80&hm=75cd7f203cdfa3df37343cf4095d7f865778ced356c3ed30b104ae23c212ae6d&",
 
 VOICE_CHANNEL_ID:"1522093061541466305",
 
