@@ -49,9 +49,9 @@ LOGO:"https://cdn.discordapp.com/attachments/1522093056495718481/154871541047440
 WELCOME_IMAGE:"https://cdn.discordapp.com/attachments/1522093056495718481/1548715281868656680/w5wmthh.png?ex=6aa81100&is=6aa6bf80&hm=75cd7f203cdfa3df37343cf4095d7f865778ced356c3ed30b104ae23c212ae6d&",
 
 // غيّر كلمة "قريباً" إلى عنوان السيرفر عندما يصبح جاهزاً، مثال: "connect 1.2.3.4:30120"
-SERVER_IP:"قريباً",
+SERVER_IP:"connect  167.235.234.14",
 
-MAINTENANCE_STATUS:"صيانة",
+MAINTENANCE_STATUS:"مفتوح",
 
 RULES_IMAGE:"https://cdn.discordapp.com/attachments/1522093056495718481/1548715281868656680/w5wmthh.png?ex=6aa81100&is=6aa6bf80&hm=75cd7f203cdfa3df37343cf4095d7f865778ced356c3ed30b104ae23c212ae6d&",
 
