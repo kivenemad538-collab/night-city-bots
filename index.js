@@ -40,13 +40,13 @@ const CONFIG={
 
 TOKEN:process.env.TOKEN||process.env.DISCORD_TOKEN||process.env.BOT_TOKEN,
 
-SERVER_NAME:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏",
+SERVER_NAME:"Legend 𝐂𝐅𝐖 𝐑𝐏",
 
 COLOR: "#008CFF",
 
 LOGO:"https://cdn.discordapp.com/attachments/1522093056495718481/1548715410474405998/551r5xt.png?ex=6aa8111f&is=6aa6bf9f&hm=4d462c1bd2b07d4b0d8d5f6e867132fa8283aaf4b8d0a2c4476c6e9b53c1907c&",
 
-WELCOME_IMAGE:"https://cdn.discordapp.com/attachments/1522093056495718481/1548715281868656680/w5wmthh.png?ex=6aa81100&is=6aa6bf80&hm=75cd7f203cdfa3df37343cf4095d7f865778ced356c3ed30b104ae23c212ae6d&",
+WELCOME_IMAGE:"https://cdn.discordapp.com/attachments/1522093056495718481/1554507792860323880/5432vwb.gif?ex=6abd23b3&is=6abbd233&hm=19de0eaa4696b457db9551259fac602b5845e442b24a353de0d34a2054db3ae5&",
 
 // غيّر كلمة "قريباً" إلى عنوان السيرفر عندما يصبح جاهزاً، مثال: "connect 1.2.3.4:30120"
 SERVER_IP:"connect  167.235.234.14",
@@ -1732,7 +1732,7 @@ new EmbedBuilder()
 ━━━━━━━━━━━━━━━━━━
 
 نشكرك على وقتك ودعمك
-لسيرفر 𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏
+لسيرفر Legend 𝐂𝐅𝐖 𝐑𝐏
 
 ━━━━━━━━━━━━━━━━━━
 `)
@@ -1967,7 +1967,7 @@ new EmbedBuilder()
 .setColor(CONFIG.COLOR)
 
 .setAuthor({
-name:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 Application System",
+name:"Legend 𝐂𝐅𝐖 Application System",
 iconURL:CONFIG.LOGO
 })
 
@@ -1995,7 +1995,7 @@ new EmbedBuilder()
 .setColor(CONFIG.COLOR)
 
 .setAuthor({
-name:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 Application System",
+name:"Legend 𝐂𝐅𝐖 Application System",
 iconURL:CONFIG.LOGO
 })
 
@@ -2007,7 +2007,7 @@ iconURL:CONFIG.LOGO
 .setThumbnail(CONFIG.LOGO)
 
 .setFooter({
-text:"Nova CFW RP • نظام التقديم"
+text:"Legend CFW RP • نظام التقديم"
 })
 ]
 });
