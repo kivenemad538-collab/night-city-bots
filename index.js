@@ -46,7 +46,7 @@ COLOR: "#008CFF",
 
 LOGO:"https://cdn.discordapp.com/attachments/1522093056495718481/1548715410474405998/551r5xt.png?ex=6aa8111f&is=6aa6bf9f&hm=4d462c1bd2b07d4b0d8d5f6e867132fa8283aaf4b8d0a2c4476c6e9b53c1907c&",
 
-WELCOME_IMAGE:"https://cdn.discordapp.com/attachments/1522093056495718481/1554507792860323880/5432vwb.gif?ex=6abd23b3&is=6abbd233&hm=19de0eaa4696b457db9551259fac602b5845e442b24a353de0d34a2054db3ae5&",
+WELCOME_IMAGE:"https://cdn.discordapp.com/attachments/1548513197542219816/1556129071937626273/IMG_0433.png?backend=b2&ex=6ac309a2&is=6ac1b822&hm=9c944e8363c8ae0eae3b337b5f25e67be8b14f60a7ec83a688b0d0e40e8076d9&",
 
 // غيّر كلمة "قريباً" إلى عنوان السيرفر عندما يصبح جاهزاً، مثال: "connect 1.2.3.4:30120"
 SERVER_IP:"connect  167.235.234.14",
@@ -1865,7 +1865,7 @@ const intro=new EmbedBuilder()
 .setColor(CONFIG.COLOR)
 
 .setAuthor({
-name:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 Application System",
+name:"Legend 𝐂𝐅𝐖 Application System",
 iconURL:CONFIG.LOGO
 })
 
@@ -1882,7 +1882,7 @@ iconURL:CONFIG.LOGO
 .setImage(CONFIG.WELCOME_IMAGE)
 
 .setFooter({
-text:"Turbo CFW RP • نظام التقديم"
+text:"Legend CFW RP • نظام التقديم"
 });
 
 await dm.send({
@@ -1918,7 +1918,7 @@ new EmbedBuilder()
 .setColor(CONFIG.COLOR)
 
 .setAuthor({
-name:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 Application System",
+name:"Legend 𝐂𝐅𝐖 Application System",
 iconURL:CONFIG.LOGO
 })
 
@@ -2029,7 +2029,7 @@ new EmbedBuilder()
 .setColor("#00ff88")
 
 .setAuthor({
-name:"𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 Application System",
+name:"Legend 𝐂𝐅𝐖 Application System",
 iconURL:CONFIG.LOGO
 })
 
@@ -2062,7 +2062,7 @@ if(type==="server")return [
 "كيف تتصرف إذا خطفك شخص ؟",
 "كيف تتصرف إذا خسرت سيناريو ؟",
 "كم ساعة تلعب يومياً ؟",
-"لماذا تريد الانضمام إلى Turbo CFW RP ؟"
+"لماذا تريد الانضمام إلى Legend CFW RP ؟"
 
 ];
 
@@ -2108,7 +2108,7 @@ return [
 "كم فيديو تستطيع نشره أسبوعياً ؟",
 "هل تستطيع عمل محتوى خاص بالسيرفر ؟",
 "هل لديك خبرة في مونتاج الفيديو ؟",
-"لماذا تريد أن تصبح صانع محتوى في Turbo CFW RP ؟",
+"لماذا تريد أن تصبح صانع محتوى في Legend CFW RP ؟",
 "هل توافق على الالتزام بقوانين النشر ؟"
 
 ];
@@ -2234,7 +2234,7 @@ roleId=CONFIG.SERVER_ACCEPT_ROLE_ID;
 acceptTitle="🎉 تم قبول طلبك في السيرفر!";
 
 acceptText=`
-تم قبولك في **𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏**.
+تم قبولك في **Legend 𝐂𝐅𝐖 𝐑𝐏**.
 📌 اضغط الزر بالأسفل لدخول المقابلة الصوتية.
 `;
 
@@ -2260,7 +2260,7 @@ roleId=CONFIG.STAFF_ACCEPT_ROLE_ID;
 acceptTitle="🛡️ تم قبولك في الإدارة!";
 
 acceptText=`
-تم قبولك ضمن فريق إدارة **𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏** ومنحك الرتبة.
+تم قبولك ضمن فريق إدارة **Legend 𝐂𝐅𝐖 𝐑𝐏** ومنحك الرتبة.
 يرجى الالتزام بالقوانين وعدم إساءة استخدام الصلاحيات.
 `;
 
@@ -2272,7 +2272,7 @@ if(type==="monitoring"){
 roleId=CONFIG.MONITORING_ACCEPT_ROLE_ID;
 acceptTitle="🛡️ تم قبولك في فريق الرقابة!";
 acceptText=`
-تم قبولك ضمن فريق الرقابة في **𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏** ومنحك الرتبة.
+تم قبولك ضمن فريق الرقابة في **Legend 𝐂𝐅𝐖 𝐑𝐏** ومنحك الرتبة.
 يرجى الالتزام بالقوانين والحياد واحترام جميع اللاعبين.
 `;
 monitoringApplied.delete(userId);
@@ -2285,7 +2285,7 @@ roleId=CONFIG.CREATOR_ACCEPT_ROLE_ID;
 acceptTitle="🎥 تم قبولك كصانع محتوى!";
 
 acceptText=`
-تم قبولك كصانع محتوى في **𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏**.
+تم قبولك كصانع محتوى في **Legend 𝐂𝐅𝐖 𝐑𝐏**.
 يمكنك نشر محتوى السيرفر مع الالتزام بقوانين النشر.
 `;
 
@@ -2313,7 +2313,7 @@ ${acceptText.trim()}
 .setImage(CONFIG.WELCOME_IMAGE)
 
 .setFooter({
-text:`𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏 • الإدارة`
+text:`Legend 𝐂𝐅𝐖 𝐑𝐏 • الإدارة`
 });
 
 const dmSent=await user.send({
@@ -2421,7 +2421,7 @@ const rejectEmbed=new EmbedBuilder()
 .setImage(CONFIG.WELCOME_IMAGE)
 
 .setFooter({
-text:`𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏 • الإدارة`
+text:`Legend 𝐂𝐅𝐖 𝐑𝐏 • الإدارة`
 });
 
 user.send({
