@@ -469,7 +469,7 @@ const embed=new EmbedBuilder()
 
 .setColor(CONFIG.COLOR)
 
-.setTitle("🎛️ لوحة تحكم 𝐓𝐮𝐫𝐛𝐨 𝐂𝐅𝐖 𝐑𝐏")
+.setTitle("🎛️ لوحة تحكم Legend 𝐂𝐅𝐖 𝐑𝐏")
 
 .setDescription(`
 من هنا تقدر تتحكم في:
